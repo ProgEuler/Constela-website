@@ -19,7 +19,7 @@ The website is fully container-ready and built to be 100% portable, optimized fo
 ## 🚀 Deployment (Dokploy & Docker)
 
 > [!NOTE]
-> **Active Deployment:** This dashboard is currently deployed and running via **Dokploy** on a VPS. All production `.env` variables (like the backend API URL) can be found and managed directly within the Dokploy Environment dashboard.
+> **Active Deployment:** This dashboard is currently deployed and running via **Dokploy** on a VPS (accessible at [https://dokploy.constela-dating.com/](https://dokploy.constela-dating.com/)). All production `.env` variables (like the backend API URL) can be found and managed directly within the Dokploy Environment dashboard.
 
 Because all sensitive configurations and API URLs have been moved to Environment Variables, deploying the app is incredibly simple.
 
