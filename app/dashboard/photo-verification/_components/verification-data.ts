@@ -7,7 +7,7 @@ export type VerificationUser = {
   joinedDate: string
   status: VerificationStatus
   profilePhotoUrl: string
-  selfieUrl: string
+  selfieUrls: string[]
   initials: string
   color: string
   location?: string
@@ -66,7 +66,7 @@ export const verificationUsers: VerificationUser[] = [
     joinedDate: "24 Jun 2024",
     status: "pending",
     profilePhotoUrl: "",
-    selfieUrl: "",
+    selfieUrls: [],
     initials: "OR",
     color: getColor(0),
     location: "New York, USA",
@@ -79,7 +79,7 @@ export const verificationUsers: VerificationUser[] = [
     joinedDate: "15 Mar 2023",
     status: "pending",
     profilePhotoUrl: "",
-    selfieUrl: "",
+    selfieUrls: [],
     initials: "PB",
     color: getColor(1),
     location: "San Francisco, USA",
@@ -92,7 +92,7 @@ export const verificationUsers: VerificationUser[] = [
     joinedDate: "10 Apr 2022",
     status: "pending",
     profilePhotoUrl: "",
-    selfieUrl: "",
+    selfieUrls: [],
     initials: "LS",
     color: getColor(2),
     location: "Austin, USA",
@@ -105,7 +105,7 @@ export const verificationUsers: VerificationUser[] = [
     joinedDate: "28 Feb 2023",
     status: "pending",
     profilePhotoUrl: "",
-    selfieUrl: "",
+    selfieUrls: [],
     initials: "DW",
     color: getColor(3),
     location: "New York, USA",
@@ -118,7 +118,7 @@ export const verificationUsers: VerificationUser[] = [
     joinedDate: "19 May 2024",
     status: "pending",
     profilePhotoUrl: "",
-    selfieUrl: "",
+    selfieUrls: [],
     initials: "CW",
     color: getColor(4),
     location: "Seattle, USA",
@@ -131,7 +131,7 @@ export const verificationUsers: VerificationUser[] = [
     joinedDate: "03 Jan 2024",
     status: "verified",
     profilePhotoUrl: "",
-    selfieUrl: "",
+    selfieUrls: [],
     initials: "NC",
     color: getColor(5),
     location: "San Diego, USA",
@@ -144,7 +144,7 @@ export const verificationUsers: VerificationUser[] = [
     joinedDate: "21 Jul 2023",
     status: "verified",
     profilePhotoUrl: "",
-    selfieUrl: "",
+    selfieUrls: [],
     initials: "DC",
     color: getColor(6),
     location: "Chicago, USA",
@@ -157,7 +157,7 @@ export const verificationUsers: VerificationUser[] = [
     joinedDate: "04 Nov 2022",
     status: "verified",
     profilePhotoUrl: "",
-    selfieUrl: "",
+    selfieUrls: [],
     initials: "AL",
     color: getColor(7),
     location: "Portland, USA",
@@ -170,7 +170,7 @@ export const verificationUsers: VerificationUser[] = [
     joinedDate: "30 Dec 2023",
     status: "rejected",
     profilePhotoUrl: "",
-    selfieUrl: "",
+    selfieUrls: [],
     initials: "KM",
     color: getColor(0),
     location: "Boston, USA",
@@ -184,7 +184,7 @@ export const verificationUsers: VerificationUser[] = [
     joinedDate: "17 Jan 2024",
     status: "rejected",
     profilePhotoUrl: "",
-    selfieUrl: "",
+    selfieUrls: [],
     initials: "ST",
     color: getColor(1),
     location: "Denver, USA",

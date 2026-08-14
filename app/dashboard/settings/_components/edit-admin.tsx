@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select"
 import { getInitials } from "@/lib/utils"
 
-const ROLES = ["Admin", "Moderator", "Super Admin"] as const
+const ROLES = ["Admin", "Moderator", "Super Admin", "Customer Support"] as const
 type Role = (typeof ROLES)[number]
 
 export type AdminUser = {
@@ -40,13 +40,18 @@ export type AdminUser = {
 type EditAdminDialogProps = {
   admin: AdminUser
   trigger?: React.ReactNode
+  currentUserRole?: string
   onSave?: (data: AdminUser) => void
 }
 
-export function EditAdminDialog({ admin, trigger, onSave }: EditAdminDialogProps) {
+export function EditAdminDialog({ admin, trigger, currentUserRole, onSave }: EditAdminDialogProps) {
   const [open, setOpen] = React.useState(false)
   const [name, setName] = React.useState(admin.name)
   const [email, setEmail] = React.useState(admin.email)
+  
+  const isSuper = currentUserRole === "superadmin"
+  const availableRoles = ROLES.filter(r => isSuper || (r !== "Admin" && r !== "Super Admin"))
+  
   const [role, setRole] = React.useState<Role>(admin.role)
 
   React.useEffect(() => {
@@ -128,14 +133,11 @@ export function EditAdminDialog({ admin, trigger, onSave }: EditAdminDialogProps
             Role
           </FieldLabel>
           <Select value={role} onValueChange={(value) => setRole(value as Role)}>
-            <SelectTrigger
-              id={`edit-admin-role-${admin.id ?? admin.email}`}
-              className="w-full"
-            >
+            <SelectTrigger id="edit-admin-role" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {ROLES.map((option) => (
+              {availableRoles.map((option) => (
                 <SelectItem key={option} value={option}>
                   {option}
                 </SelectItem>

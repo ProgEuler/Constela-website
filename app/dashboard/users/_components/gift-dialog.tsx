@@ -97,19 +97,43 @@ type GiftSubscriptionDialogProps = {
   user: UserRow
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  onGifted?: () => void
 }
 
-export function GiftSubscriptionDialog({ user, open, onOpenChange }: GiftSubscriptionDialogProps) {
+// Map plan value → backend tier slug
+const PLAN_TIER_MAP: Record<string, string> = {
+  "premium-light": "light",
+  "premium-plus": "plus",
+  "premium-annual": "annual",
+}
+
+export function GiftSubscriptionDialog({ user, open, onOpenChange, onGifted }: GiftSubscriptionDialogProps) {
   const [plan, setPlan] = React.useState<string>("premium-plus")
   const [duration, setDuration] = React.useState<string>("3")
+  const [isLoading, setIsLoading] = React.useState(false)
 
   const selectedPlan = PLANS.find((p) => p.value === plan) ?? PLANS[0]
   const selectedDuration = DURATIONS.find((d) => d.value === duration) ?? DURATIONS[0]
-  const currentPlanLabel = user.subscription ?? "Premium Plus"
+  const currentPlanLabel = user.subscription ?? "Free"
 
-  const handleConfirm = () => {
-    // In a real app, call your API here
-    onOpenChange?.(false)
+  const handleConfirm = async () => {
+    setIsLoading(true)
+    try {
+      const { api } = await import("@/lib/api")
+      await api.post(`/api/admin/users/${user.id}/gift/`, {
+        tier: PLAN_TIER_MAP[plan] ?? "plus",
+        duration_months: parseInt(duration),
+      })
+      const { toast } = await import("sonner")
+      toast.success(`Gifted ${selectedPlan.name} (${selectedDuration.label}) to ${user.name}.`)
+      onGifted?.()
+      onOpenChange?.(false)
+    } catch (err: any) {
+      const { toast } = await import("sonner")
+      toast.error(err?.message ?? "Failed to gift subscription.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -250,9 +274,10 @@ export function GiftSubscriptionDialog({ user, open, onOpenChange }: GiftSubscri
           <Button
             className="flex-1 bg-orange-500 text-white hover:bg-orange-600"
             onClick={handleConfirm}
+            disabled={isLoading}
           >
             <Gift />
-            Confirm Gift
+            {isLoading ? "Gifting…" : "Confirm Gift"}
           </Button>
           <DialogClose asChild>
             <Button variant="outline" className="flex-1">

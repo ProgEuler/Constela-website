@@ -14,6 +14,7 @@ export interface ChatMember {
   email: string
   initials: string
   avatarBg: string
+  avatar?: string
   role: "admin" | "moderator" | "member"
   joinedAt: string
 }

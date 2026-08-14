@@ -2,7 +2,7 @@
 
 import { Ban, Calendar, MessageSquare, MoreVertical, Pencil, Shield, Trash2, UserMinus, Users } from "lucide-react"
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -125,6 +125,7 @@ export default function RoomDetailPanel({
               className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted/50"
             >
               <Avatar size="sm">
+                {member.avatar && <AvatarImage src={member.avatar} alt={member.name} />}
                 <AvatarFallback className={cn("text-[10px] text-white", member.avatarBg)}>
                   {member.initials}
                 </AvatarFallback>

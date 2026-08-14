@@ -15,16 +15,16 @@ type TableUserCellRendererParams = {
 
 export function TableUserCell({ name, description }: TableUserCellProps) {
   return (
-      <div className="min-w-0">
-        <div className="truncate text-sm font-medium text-foreground">
-          {name}
-        </div>
-        {description ? (
-          <div className="truncate text-sm text-muted-foreground">
-            {description}
-          </div>
-        ) : null}
+    <div className="min-w-0 text-left">
+      <div className="truncate text-sm font-medium text-foreground">
+        {name}
       </div>
+      {description ? (
+        <div className="truncate text-sm text-muted-foreground">
+          {description}
+        </div>
+      ) : null}
+    </div>
   )
 }
 

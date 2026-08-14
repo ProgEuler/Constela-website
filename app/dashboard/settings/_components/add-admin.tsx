@@ -27,26 +27,32 @@ import {
 } from "@/components/ui/select"
 import { getInitials } from "@/lib/utils"
 
-const ROLES = ["Admin", "Moderator", "Super Admin"] as const
+const ROLES = ["Admin", "Moderator", "Super Admin", "Customer Support"] as const
 type Role = (typeof ROLES)[number]
 
 type AddAdminDialogProps = {
   trigger?: React.ReactNode
+  currentUserRole?: string
   onCreate?: (data: { name: string; email: string; role: Role; password: string }) => void
 }
 
-export function AddAdminDialog({ trigger, onCreate }: AddAdminDialogProps) {
+export function AddAdminDialog({ trigger, currentUserRole, onCreate }: AddAdminDialogProps) {
   const [open, setOpen] = React.useState(false)
   const [name, setName] = React.useState("")
   const [email, setEmail] = React.useState("")
-  const [role, setRole] = React.useState<Role>("Admin")
+  
+  // Available roles depend on current user
+  const isSuper = currentUserRole === "superadmin"
+  const availableRoles = ROLES.filter(r => isSuper || (r !== "Admin" && r !== "Super Admin"))
+  
+  const [role, setRole] = React.useState<Role>(isSuper ? "Admin" : "Customer Support")
   const [password, setPassword] = React.useState("")
 
   React.useEffect(() => {
     if (!open) {
       setName("")
       setEmail("")
-      setRole("Admin")
+      setRole(isSuper ? "Admin" : "Customer Support")
       setPassword("")
     }
   }, [open])
@@ -121,14 +127,14 @@ export function AddAdminDialog({ trigger, onCreate }: AddAdminDialogProps) {
 
         <Field>
           <FieldLabel htmlFor="add-admin-role">Role</FieldLabel>
-          <Select value={role} onValueChange={(value) => setRole(value as Role)}>
-            <SelectTrigger id="add-admin-role" className="w-full">
-              <SelectValue />
+          <Select value={role} onValueChange={(val) => setRole(val as Role)}>
+            <SelectTrigger id="admin-role">
+              <SelectValue placeholder="Select a role" />
             </SelectTrigger>
             <SelectContent>
-              {ROLES.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {option}
+              {availableRoles.map((r) => (
+                <SelectItem key={r} value={r}>
+                  {r}
                 </SelectItem>
               ))}
             </SelectContent>

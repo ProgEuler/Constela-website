@@ -48,11 +48,12 @@ type AgTableProps<TData extends object> = {
   suppressCellClickAction?: boolean
   onCellValueChanged?: GridOptions<TData>["onCellValueChanged"]
   onGridReady?: (api: GridApi<TData>) => void
-  gridOptions?: GridOptions<TData>
+  gridOptions?: Omit<GridOptions<TData>, "rowData" | "columnDefs">
   loading?: boolean
-  noRowsText?: string
+  noRowsText?: ReactNode
   theme?: Theme
   className?: string
+  context?: GridOptions<TData>["context"]
 }
 
 export function AgTable<TData extends object>({
@@ -77,6 +78,7 @@ export function AgTable<TData extends object>({
   noRowsText = "No records found",
   theme,
   className,
+  context,
 }: AgTableProps<TData>) {
   const gridApiRef = useRef<GridApi<TData> | null>(null)
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false)
@@ -157,8 +159,8 @@ export function AgTable<TData extends object>({
     () => ({
       flex: 1,
       minWidth: 150,
-      cellClass: "text-center",
-      headerClass: "text-center",
+      cellClass: "text-left",
+      headerClass: "text-left",
       resizable: true,
       filter: false,
       sortable: true,
@@ -345,6 +347,7 @@ export function AgTable<TData extends object>({
           theme={gridTheme}
           domLayout={isAutoHeight ? "autoHeight" : "normal"}
           components={gridComponents}
+          context={context}
           rowSelection={rowSelection}
           onSelectionChanged={handleSelectionChanged}
           onGridReady={handleGridReady}

@@ -10,6 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldContent, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { api, setToken } from "@/lib/api";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -17,8 +19,23 @@ const formSchema = z.object({
   remember: z.boolean().optional(),
 });
 
+type LoginResponse = {
+  access: string;
+  refresh: string;
+  role: string;
+};
+
+const ROLE_DASHBOARD_MAP: Record<string, string> = {
+  superadmin: "super-admin",
+  admin: "admin",
+  moderator: "moderator",
+  support: "support",
+};
+
 export function LoginForm() {
-   const router = useRouter();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -28,15 +45,28 @@ export function LoginForm() {
     },
   });
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-      router.push("/roles");
-   //  toast("You submitted the following values", {
-   //    description: (
-   //      <pre className="mt-2 w-[320px] rounded-md bg-neutral-950 p-4">
-   //        <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-   //      </pre>
-   //    ),
-   //  });
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    setIsLoading(true);
+    try {
+      const res = await api.post<LoginResponse>("/api/auth/login/", {
+        email: data.email,
+        password: data.password,
+      });
+
+      setToken(res.access);
+
+      // Map backend role to dashboard slug
+      const dashboardSlug = ROLE_DASHBOARD_MAP[res.role] ?? "admin";
+
+      // Also set the selected_role cookie so the sidebar renders correctly
+      document.cookie = `selected_role=${dashboardSlug}; path=/; max-age=${60 * 60 * 24 * 7}`;
+
+      router.push(`/dashboard/${dashboardSlug}`);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Invalid credentials. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -100,8 +130,8 @@ export function LoginForm() {
           )}
         />
       </FieldGroup>
-      <Button className="w-full" type="submit">
-        Login
+      <Button className="w-full" type="submit" disabled={isLoading}>
+        {isLoading ? "Signing in…" : "Login"}
       </Button>
     </form>
   );

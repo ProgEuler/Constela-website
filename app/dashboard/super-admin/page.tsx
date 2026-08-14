@@ -1,97 +1,91 @@
-import { Users, Heart, CreditCard, DollarSign, UserCheck, AreaChart } from "lucide-react"
+"use client";
 
-import { Card, CardTitle } from "@/components/ui/card"
-import StatCard from "@/components/shared/stat-card"
-import { LineChartComp } from "@/components/charts/line-chart"
-import { PieChartComp } from "@/components/charts/pie-chart"
-import IconWrap from "@/components/common/icon-wrapper"
-import { AreaChartComp } from "@/components/charts/area-chart"
-import { BarChartComp } from "@/components/charts/bar-chart"
+import { useEffect, useState } from "react";
+import { Users, Heart, CreditCard, DollarSign, Camera, TicketCheck } from "lucide-react";
+
+import { Card, CardTitle } from "@/components/ui/card";
+import StatCard, { type Stat } from "@/components/shared/stat-card";
+import { LineChartComp } from "@/components/charts/line-chart";
+import { PieChartComp } from "@/components/charts/pie-chart";
+import IconWrap from "@/components/common/icon-wrapper";
+import { AreaChartComp } from "@/components/charts/area-chart";
+import { BarChartComp } from "@/components/charts/bar-chart";
+import { api } from "@/lib/api";
+import { RealTimeActivity } from "./_components/real-time-activity";
+
+type DashboardStats = {
+  total_users: number;
+  premium_users: number;
+  pending_verifications: number;
+  unresolved_reports: number;
+  pending_tickets: number;
+  total_revenue: number;
+};
 
 export default function SuperAdminDashboard() {
-  const stats = [
-    { label: "Total Users", value: "24,582", change: "+12.5%", icon: Users },
-    { label: "Active Matches", value: "8,341", change: "+8.2%", icon: Heart },
-    { label: "Revenue", value: "$128,490", change: "+23.1%", icon: DollarSign },
+  const [statsData, setStatsData] = useState<DashboardStats | null>(null);
+
+  useEffect(() => {
+    api.get<DashboardStats>("/api/admin/dashboard/stats/")
+      .then(setStatsData)
+      .catch(console.error);
+  }, []);
+
+  const stats: Stat[] = [
     {
-      label: "Subscriptions",
-      value: "12,047",
-      change: "+5.4%",
+      label: "Total Users",
+      value: statsData ? statsData.total_users.toLocaleString() : "—",
+      change: "",
+      icon: Users,
+    },
+    {
+      label: "Premium Users",
+      value: statsData ? statsData.premium_users.toLocaleString() : "—",
+      change: "",
       icon: CreditCard,
     },
-  ]
+    {
+      label: "Total Revenue",
+      value: statsData ? `$${statsData.total_revenue.toLocaleString()}` : "—",
+      change: "",
+      icon: DollarSign,
+    },
+    {
+      label: "Pending Verifications",
+      value: statsData ? statsData.pending_verifications.toLocaleString() : "—",
+      change: "",
+      icon: Camera,
+      iconColor: "warning",
+    },
+    {
+      label: "Open Reports",
+      value: statsData ? statsData.unresolved_reports.toLocaleString() : "—",
+      change: "",
+      icon: Heart,
+      iconColor: "destructive",
+    },
+    {
+      label: "Open Tickets",
+      value: statsData ? statsData.pending_tickets.toLocaleString() : "—",
+      change: "",
+      icon: TicketCheck,
+      iconColor: "warning",
+    },
+  ];
 
   return (
     <div className="space-y-6">
       <StatCard stats={stats} />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Registrations graph */}
-        <LineChartComp />
-        {/* User pie chart */}
-        <PieChartComp />
-        {/* activity list */}
-        <Card className="p-4">
-          <CardTitle>Real-time Activity</CardTitle>
-          <div className="space-y-4">
-            <div className="flex gap-4">
-              <IconWrap>
-                <UserCheck />
-              </IconWrap>
-              <div className="flex items-center gap-2">
-                <span className="text-sm">New user registered</span>
-                <span className="text-xs text-muted-foreground">
-                  2 minutes ago
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <IconWrap>
-                <UserCheck />
-              </IconWrap>
-              <div className="flex items-center gap-2">
-                <span className="text-sm">New user registered</span>
-                <span className="text-xs text-muted-foreground">
-                  2 minutes ago
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <IconWrap>
-                <UserCheck />
-              </IconWrap>
-              <div className="flex items-center gap-2">
-                <span className="text-sm">New user registered</span>
-                <span className="text-xs text-muted-foreground">
-                  2 minutes ago
-                </span>
-              </div>
-            </div>
-          </div>
-        </Card>
-        {/* top countries */}
-        <Card className="p-4">
-            <CardTitle>Top Countries</CardTitle>
-            <div className="space-y-4">
-               <div className="flex items-center gap-4">
-                  <span className="text-sm">United States</span>
-                  <span className="text-xs text-muted-foreground">35% of users</span>
-               </div>
-               <div className="flex items-center gap-4">
-                  <span className="text-sm">India</span>
-                  <span className="text-xs text-muted-foreground">25% of users</span>
-               </div>
-               <div className="flex items-center gap-4">
-                  <span className="text-sm">United Kingdom</span>
-                  <span className="text-xs text-muted-foreground">15% of users</span>
-               </div>
-            </div>
-         </Card>
-        {/* revenue graph */}
-        <AreaChartComp />
-        {/* reports bar chart */}
-        <BarChartComp />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[2fr_1fr]">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <LineChartComp />
+          <PieChartComp />
+          <AreaChartComp />
+          <BarChartComp />
+        </div>
+        <RealTimeActivity />
       </div>
     </div>
-  )
+  );
 }

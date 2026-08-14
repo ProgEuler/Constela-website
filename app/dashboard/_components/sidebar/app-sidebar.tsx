@@ -16,6 +16,8 @@ import { rootUser } from "@/data/users"
 
 import { NavMain } from "./nav-main"
 import { NavUser } from "./nav-user"
+import { useEffect, useState } from "react"
+import { api } from "@/lib/api"
 import { sidebarItems } from "@/navigation/sidebar-items"
 import { NavGroup } from "@/navigation/sidebar-items"
 import type { RoleSlug } from "@/navigation/roles"
@@ -41,6 +43,24 @@ export function AppSidebar({
   selectedRole,
   ...props
 }: React.ComponentProps<typeof Sidebar> & { selectedRole?: RoleSlug }) {
+  const [user, setUser] = useState<{ name: string; email: string; avatar: string }>(rootUser)
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const profile = await api.get<any>("/api/profile/me/")
+        setUser({
+          name: profile.user?.first_name || profile.user?.email?.split("@")[0] || "Admin",
+          email: profile.user?.email || "",
+          avatar: profile.photos?.[0]?.image || "",
+        })
+      } catch (err) {
+        console.error("Failed to load user profile:", err)
+      }
+    }
+    fetchUser()
+  }, [])
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
@@ -71,7 +91,7 @@ export function AppSidebar({
         />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={rootUser} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   )

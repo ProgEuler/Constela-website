@@ -20,11 +20,13 @@ import { cn } from "@/lib/utils"
 interface CreateRoomDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onCreate?: (name: string, description: string) => void
 }
 
 export default function CreateRoomDialog({
   open,
   onOpenChange,
+  onCreate
 }: CreateRoomDialogProps) {
   const [roomName, setRoomName] = useState("")
   const [description, setDescription] = useState("")
@@ -32,7 +34,7 @@ export default function CreateRoomDialog({
 
   const handleCreate = () => {
     if (!roomName.trim()) return
-    // Handle room creation
+    onCreate?.(roomName, description)
     onOpenChange(false)
     setRoomName("")
     setDescription("")

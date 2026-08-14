@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils"
 
 import { statusMeta, type VerificationUser } from "./verification-data"
 import { Avatar } from "@/components/ui/avatar"
+import { useState } from "react"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 
 type VerificationPanelProps = {
   user: VerificationUser
@@ -17,41 +19,84 @@ type VerificationPanelProps = {
   onReject: (user: VerificationUser) => void
 }
 
+const getImageUrl = (path: string | undefined | null) => {
+  if (!path) return "";
+  if (path.startsWith("http")) return path;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
+  return `${baseUrl}${path.startsWith("/") ? "" : "/"}${path}`;
+};
+
 export function VerificationPanel({
   user,
   onVerify,
   onReject,
 }: VerificationPanelProps) {
   const meta = statusMeta[user.status]
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-5">
-        <div className="grid grid-cols-2 gap-4">
+        <div className={cn("grid gap-4", user.profilePhotoUrl ? "grid-cols-2" : "grid-cols-1")}>
           {/* Profile Photo */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-foreground">
-                Profile Photo
-              </span>
+          {user.profilePhotoUrl && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-foreground">
+                  Profile Photo
+                </span>
+              </div>
+              <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted">
+                <img
+                  src={getImageUrl(user.profilePhotoUrl)}
+                  alt="Profile"
+                  className="h-full w-full object-cover"
+                />
+              </div>
             </div>
-            <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted"></div>
-          </div>
+          )}
 
-          {/* Verification Selfie */}
+          {/* Verification Selfies */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-foreground">
-                Verification Selfie
+                Verification Selfies
               </span>
             </div>
-            <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted">
-              {/* Selfie frame indicator */}
-              <div className="absolute inset-4 rounded-lg border-2 border-dashed border-white/30" />
+            <div className="flex gap-2 h-[200px]">
+              {user.selfieUrls && user.selfieUrls.length > 0 ? (
+                user.selfieUrls.map((url, i) => (
+                  url ? (
+                    <div 
+                      key={i} 
+                      className="relative flex-1 cursor-pointer overflow-hidden rounded-xl bg-muted transition-transform hover:scale-[1.02]"
+                      onClick={() => setSelectedImage(getImageUrl(url))}
+                    >
+                      <img
+                        src={getImageUrl(url)}
+                        alt={`Selfie ${i}`}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ) : null
+                ))
+              ) : (
+                <div className="flex w-full h-full rounded-xl bg-muted items-center justify-center text-muted-foreground text-sm">
+                  No selfies
+                </div>
+              )}
             </div>
           </div>
         </div>
       </CardContent>
+
+      <Dialog open={!!selectedImage} onOpenChange={(open) => !open && setSelectedImage(null)}>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden border-none bg-transparent shadow-none">
+          {selectedImage && (
+            <img src={selectedImage} alt="Enlarged verification" className="w-full h-auto object-contain rounded-xl max-h-[80vh]" />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Separator />
 
@@ -93,18 +138,22 @@ export function VerificationPanel({
       {/* Action buttons */}
       <CardContent className="p-5">
         <div className="flex gap-3">
-          <Button
-            variant="outline"
-            className="flex-1 gap-2"
-            onClick={() => onReject(user)}
-          >
-            <XCircle className="size-4 text-destructive" />
-            Reject
-          </Button>
-          <Button className="flex-1 gap-2" onClick={() => onVerify(user)}>
-            <CheckCircle2 className="size-4" />
-            Verify Identity
-          </Button>
+          {(user.status === "pending" || user.status === "verified") && (
+            <Button
+              variant="outline"
+              className="flex-1 gap-2"
+              onClick={() => onReject(user)}
+            >
+              <XCircle className="size-4 text-destructive" />
+              Reject
+            </Button>
+          )}
+          {(user.status === "pending" || user.status === "rejected") && (
+            <Button className="flex-1 gap-2" onClick={() => onVerify(user)}>
+              <CheckCircle2 className="size-4" />
+              Verify Identity
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

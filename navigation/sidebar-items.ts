@@ -9,6 +9,7 @@ import {
   Shield,
   Signal,
   Users,
+  TicketCheck,
 } from "lucide-react"
 
 export interface NavSubItem {
@@ -59,6 +60,11 @@ export const sidebarItems: NavGroup[] = [
         title: "Matches",
         url: "/dashboard/matches",
         icon: Heart,
+      },
+      {
+        title: "Customer Support",
+        url: "/dashboard/support/support-tickets",
+        icon: TicketCheck,
       },
       {
         title: "Subscriptions",
