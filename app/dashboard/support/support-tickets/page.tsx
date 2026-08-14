@@ -40,10 +40,10 @@ const PRIORITY_STYLES: Record<string, string> = {
 function toRowData(tickets: Ticket[]) {
   return tickets.map((t) => ({
     id: t.id,
-    user: t.user_name || "Unknown User",
+    user: t.name || "Unknown User",
     subject: {
       title: t.subject,
-      snippet: t.description?.slice(0, 80) + (t.description?.length > 80 ? "…" : ""),
+      snippet: t.message?.slice(0, 80) + (t.message?.length > 80 ? "…" : ""),
     },
     received: timeAgo(t.created_at),
     status: t.status === "in_progress" ? "In Progress" : t.status === "resolved" ? "Resolved" : "Open",
@@ -51,7 +51,7 @@ function toRowData(tickets: Ticket[]) {
   }));
 }
 
-const sharedColumns = (router: ReturnType<typeof useRouter>, showOpen?: boolean) => [
+const sharedColumns = (router: ReturnType<typeof useRouter>, showOpen?: boolean): any[] => [
   { headerName: "User", field: "user", cellRenderer: "tableUserCell", maxWidth: 200 },
   {
     headerName: "Subject",

@@ -39,7 +39,7 @@ export default function Page() {
         name: u.username,
         email: u.user?.email ?? "",
         role: "Member",
-        status: u.user?.is_active === false ? "Blocked" : "Active",
+        status: u.user?.is_active === false ? "Locked" : "Active",
         team: "Platform",
         workspace: [],
         joinedDate: u.user?.date_joined ? new Date(u.user.date_joined).toLocaleString() : "—",

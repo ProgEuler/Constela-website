@@ -38,7 +38,7 @@ export function UserActionsCell({ data, context }: UserActionsCellProps) {
 
   const handleBlock = async () => {
     if (!data) return;
-    const isCurrentlyBlocked = data.status === "Blocked";
+    const isCurrentlyBlocked = data.status === "Locked";
     const actionText = isCurrentlyBlocked ? "unblock" : "block";
     try {
       setIsProcessing(true)
@@ -108,7 +108,7 @@ export function UserActionsCell({ data, context }: UserActionsCellProps) {
             }}
           >
             <Ban className="size-4" />
-            {data.status === "Blocked" ? "Unblock User" : "Block User"}
+            {data.status === "Locked" ? "Unblock User" : "Block User"}
           </DropdownMenuItem>
           <DropdownMenuItem
             variant="destructive"
@@ -132,12 +132,12 @@ export function UserActionsCell({ data, context }: UserActionsCellProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {data.status === "Blocked" ? "Unblock User Account" : "Block User Account"}
+              {data.status === "Locked" ? "Unblock User Account" : "Block User Account"}
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to {data.status === "Blocked" ? "unblock" : "block"}{" "}
+              Are you sure you want to {data.status === "Locked" ? "unblock" : "block"}{" "}
               <span className="font-semibold text-foreground">{data.name}</span>?{" "}
-              {data.status !== "Blocked" &&
+              {data.status !== "Locked" &&
                 "Blocking this user will instantly revoke their access and they won't be able to log in with this email address."}
             </DialogDescription>
           </DialogHeader>
@@ -152,7 +152,7 @@ export function UserActionsCell({ data, context }: UserActionsCellProps) {
             <Button onClick={handleBlock} disabled={isProcessing}>
               {isProcessing
                 ? "Processing..."
-                : data.status === "Blocked"
+                : data.status === "Locked"
                 ? "Unblock User"
                 : "Block User"}
             </Button>
