@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
+import { API_BASE } from "@/lib/api"
 
 import { statusMeta, type VerificationUser } from "./verification-data"
 import { Avatar } from "@/components/ui/avatar"
@@ -22,8 +23,7 @@ type VerificationPanelProps = {
 const getImageUrl = (path: string | undefined | null) => {
   if (!path) return "";
   if (path.startsWith("http")) return path;
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
-  return `${baseUrl}${path.startsWith("/") ? "" : "/"}${path}`;
+  return `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
 };
 
 export function VerificationPanel({

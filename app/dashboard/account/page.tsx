@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { api } from "@/lib/api";
+import { api, API_BASE } from "@/lib/api";
 import { getInitials } from "@/lib/utils";
 
 export default function AccountPage() {
@@ -15,6 +15,7 @@ export default function AccountPage() {
   const [isLoading, setIsLoading] = useState(true);
   
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   
@@ -28,6 +29,7 @@ export default function AccountPage() {
       const data = await api.get<any>("/api/profile/me/");
       setProfile(data);
       setName(data.user?.first_name || data.user?.email?.split("@")[0] || "");
+      setEmail(data.user?.email || "");
     } catch (err: any) {
       toast.error("Failed to load profile.");
     } finally {
@@ -40,14 +42,14 @@ export default function AccountPage() {
   }, [loadProfile]);
 
   const handleUpdateName = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !email.trim()) return;
     setIsUpdatingName(true);
     try {
-      await api.patch("/api/profile/me/", { first_name: name });
-      toast.success("Name updated successfully!");
+      await api.patch("/api/profile/me/", { first_name: name, email: email });
+      toast.success("Profile updated successfully!");
       window.location.reload(); 
     } catch (err: any) {
-      toast.error(err?.message || "Failed to update name.");
+      toast.error(err?.message || "Failed to update profile.");
     } finally {
       setIsUpdatingName(false);
     }
@@ -84,8 +86,8 @@ export default function AccountPage() {
       const existingPhoto = profile?.photos?.[0];
       const method = existingPhoto ? "PATCH" : "POST";
       const url = existingPhoto 
-        ? `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001"}/api/photos/${existingPhoto.id}/`
-        : `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001"}/api/photos/`;
+        ? `${API_BASE}/api/photos/${existingPhoto.id}/`
+        : `${API_BASE}/api/photos/`;
       
       const res = await fetch(url, {
         method,
@@ -154,8 +156,7 @@ export default function AccountPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" value={profile?.user?.email || ""} disabled className="bg-muted" />
-            <p className="text-[10px] text-muted-foreground">Email cannot be changed.</p>
+            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>

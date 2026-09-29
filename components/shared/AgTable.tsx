@@ -24,6 +24,7 @@ import {
 import type { DateRange } from "react-day-picker"
 import { createShadcnAgGridTheme } from "@/lib/ag-grid-shadcn-theme"
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   renderTableUserCell,
   renderTableUserCellWithEmail,
@@ -337,7 +338,7 @@ export function AgTable<TData extends object>({
         <h2 className="mb-3 text-base font-medium text-foreground">{title}</h2>
       ) : null}
       <div
-        className={cn("ag-table-shadcn w-full", className)}
+        className={cn("ag-table-shadcn relative w-full", className)}
         style={containerStyle}
       >
         <AgGridReact<TData>
@@ -361,10 +362,31 @@ export function AgTable<TData extends object>({
           suppressMovableColumns={false}
           enableCellTextSelection
           noRowsOverlayComponent={() => (
-            <span className="text-sm text-muted-foreground">{noRowsText}</span>
+            <div className="flex h-full w-full items-center justify-center px-6 text-center text-sm text-muted-foreground">
+              {noRowsText}
+            </div>
           )}
           {...gridOptions}
         />
+        {loading ? (
+          <div
+            className="absolute inset-x-px bottom-px top-[49px] z-20 overflow-hidden rounded-b-[inherit] bg-background p-4"
+            role="status"
+            aria-label="Loading table data"
+          >
+            <div className="space-y-4">
+              {Array.from({ length: 8 }, (_, row) => (
+                <div key={row} className="grid grid-cols-[4rem_1.3fr_1.6fr_1fr_1fr] gap-6">
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-5 w-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
       </div>
     </AgGridProvider>

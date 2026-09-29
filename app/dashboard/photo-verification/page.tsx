@@ -1,6 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import useSWR from "swr"
 import { CircleCheck, Clock, OctagonX } from "lucide-react"
 import { toast } from "sonner"
 
@@ -11,6 +12,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import StatCard from "@/components/shared/stat-card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/lib/api"
 
 import { UserReviewCard } from "./_components/user-review-card"
@@ -55,45 +57,29 @@ function mapApiUser(u: any, index: number): VerificationUser {
 }
 
 export default function PhotoVerificationPage() {
-  const [pendingUsers, setPendingUsers] = useState<VerificationUser[]>([])
-  const [verifiedUsers, setVerifiedUsers] = useState<VerificationUser[]>([])
-  const [rejectedUsers, setRejectedUsers] = useState<VerificationUser[]>([])
   const [selectedUser, setSelectedUser] = useState<VerificationUser | undefined>()
   const [activeTab, setActiveTab] = useState<string>("pending")
-  const [isLoading, setIsLoading] = useState(true)
+  const { data, error, isLoading, mutate } = useSWR<VerificationData>("/api/admin/verifications/")
+  const pendingUsers = useMemo(() => (data?.pending ?? []).map(mapApiUser), [data])
+  const verifiedUsers = useMemo(() => (data?.verified ?? []).map(mapApiUser), [data])
+  const rejectedUsers = useMemo(() => (data?.rejected ?? []).map(mapApiUser), [data])
 
-  const load = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const data = await api.get<VerificationData>("/api/admin/verifications/")
-      const pending = data.pending.map((u, i) => mapApiUser(u, i))
-      const verified = data.verified.map((u, i) => mapApiUser(u, i))
-      const rejected = data.rejected.map((u, i) => mapApiUser(u, i))
-      
-      setPendingUsers(pending)
-      setVerifiedUsers(verified)
-      setRejectedUsers(rejected)
-      
-      const currentList = activeTab === "pending" ? pending : (activeTab === "verified" ? verified : rejected)
-      if (currentList.length > 0) {
-        setSelectedUser(currentList[0])
-      } else {
-        setSelectedUser(undefined)
-      }
-    } catch (err: any) {
-      toast.error(err?.message ?? "Failed to load verifications.")
-    } finally {
-      setIsLoading(false)
+  useEffect(() => {
+    if (error) toast.error(error.message ?? "Failed to load verifications.", { id: "verifications-load" })
+  }, [error])
+
+  useEffect(() => {
+    const currentList = activeTab === "pending" ? pendingUsers : activeTab === "verified" ? verifiedUsers : rejectedUsers
+    if (!selectedUser || !currentList.some((user) => user.id === selectedUser.id)) {
+      setSelectedUser(currentList[0])
     }
-  }, [activeTab])
-
-  useEffect(() => { load() }, [load])
+  }, [activeTab, data, selectedUser, pendingUsers, verifiedUsers, rejectedUsers])
 
   const handleVerify = async (user: VerificationUser) => {
     try {
       await api.post(`/api/admin/verifications/${user.id}/action/`, { action: "approve" })
       toast.success(`${user.name} has been verified.`)
-      load()
+      mutate()
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to verify user.")
     }
@@ -103,7 +89,7 @@ export default function PhotoVerificationPage() {
     try {
       await api.post(`/api/admin/verifications/${user.id}/action/`, { action: "reject" })
       toast.success(`${user.name} has been rejected.`)
-      load()
+      mutate()
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to reject user.")
     }
@@ -112,6 +98,7 @@ export default function PhotoVerificationPage() {
   return (
     <div className="space-y-6">
       <StatCard
+        loading={isLoading}
         stats={[
           {
             label: "Pending",
@@ -137,7 +124,14 @@ export default function PhotoVerificationPage() {
         ]}
       />
 
-      <Tabs
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_1fr]" role="status" aria-label="Loading verifications">
+          <div className="space-y-3">
+            {Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="h-20 w-full" />)}
+          </div>
+          <Skeleton className="h-[400px] w-full" />
+        </div>
+      ) : <Tabs
         defaultValue="pending"
         onValueChange={(value) => {
           setActiveTab(value)
@@ -271,7 +265,7 @@ export default function PhotoVerificationPage() {
             </div>
           </div>
         </TabsContent>
-      </Tabs>
+      </Tabs>}
     </div>
   )
 }

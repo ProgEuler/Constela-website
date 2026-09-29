@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import useSWR from "swr";
 import { formatDistanceToNow } from "date-fns";
 import { UserPlus, Heart, MessageSquare, Crown, AlertCircle } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -26,26 +26,14 @@ const activityIconMap: Record<string, { icon: React.ElementType, bgClass: string
 };
 
 export function RealTimeActivity() {
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data, error, isLoading } = useSWR<Activity[]>("/api/admin/dashboard/activity/", {
+    refreshInterval: 30_000,
+  });
+  const activities = data ?? [];
 
   useEffect(() => {
-    async function loadActivity() {
-      try {
-        const data = await api.get<Activity[]>("/api/admin/dashboard/activity/");
-        setActivities(data);
-      } catch (err: any) {
-        toast.error(err?.message || "Failed to load real-time activity.");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadActivity();
-    
-    // Refresh every 30 seconds
-    const interval = setInterval(loadActivity, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    if (error) toast.error(error.message || "Failed to load real-time activity.", { id: "activity-load" });
+  }, [error]);
 
   return (
     <Card className="flex flex-col h-full border-dashed border-2">

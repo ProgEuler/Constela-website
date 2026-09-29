@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import IconWrap from "../common/icon-wrapper"
 
 type StatIconColor = "default" | "success" | "warning" | "destructive" | "muted"
@@ -14,6 +15,7 @@ interface Stat {
 interface StatCardProps {
   stats: Stat[]
   className?: string
+  loading?: boolean
 }
 
 export type { Stat, StatIconColor }
@@ -26,7 +28,7 @@ const iconColorClasses: Record<StatIconColor, string> = {
   muted: "bg-muted text-muted-foreground",
 }
 
-export default function StatCard({ stats, className }: StatCardProps) {
+export default function StatCard({ stats, className, loading = false }: StatCardProps) {
   return (
     <div className={className ?? "grid gap-4 sm:grid-cols-2 lg:grid-cols-4"}>
       {stats.map((stat) => {
@@ -43,7 +45,11 @@ export default function StatCard({ stats, className }: StatCardProps) {
                 {IconComponent ? <IconComponent /> : null}
               </IconWrap>
             </div>
-            <p className="mt-2 text-2xl font-bold">{stat.value}</p>
+            {loading ? (
+              <Skeleton className="mt-3 h-7 w-20" />
+            ) : (
+              <p className="mt-2 text-2xl font-bold">{stat.value}</p>
+            )}
             {stat.change && (
               <p className="text-xs text-emerald-600 dark:text-emerald-400">
                 {stat.change} from last month

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { Lock, Globe } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -15,12 +14,11 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
 
 interface CreateRoomDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onCreate?: (name: string, description: string) => void
+  onCreate: (name: string, description: string) => Promise<boolean>
 }
 
 export default function CreateRoomDialog({
@@ -30,19 +28,22 @@ export default function CreateRoomDialog({
 }: CreateRoomDialogProps) {
   const [roomName, setRoomName] = useState("")
   const [description, setDescription] = useState("")
-  const [roomType, setRoomType] = useState<"public" | "private">("public")
+  const [isCreating, setIsCreating] = useState(false)
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!roomName.trim()) return
-    onCreate?.(roomName, description)
-    onOpenChange(false)
+    setIsCreating(true)
+    const created = await onCreate(roomName.trim(), description.trim())
+    setIsCreating(false)
+    if (!created) return
+
     setRoomName("")
     setDescription("")
-    setRoomType("public")
+    onOpenChange(false)
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(nextOpen) => !isCreating && onOpenChange(nextOpen)}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Create Chat Room</DialogTitle>
@@ -59,6 +60,7 @@ export default function CreateRoomDialog({
               placeholder="Enter room name..."
               value={roomName}
               onChange={(e) => setRoomName(e.target.value)}
+              disabled={isCreating}
             />
           </div>
 
@@ -70,16 +72,17 @@ export default function CreateRoomDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="min-h-[80px] resize-none"
+              disabled={isCreating}
             />
           </div>
         </div>
 
         <DialogFooter className="gap-2 sm:justify-end">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isCreating}>
             Cancel
           </Button>
-          <Button onClick={handleCreate} disabled={!roomName.trim()}>
-            Create Room
+          <Button onClick={handleCreate} disabled={!roomName.trim() || isCreating}>
+            {isCreating ? "Creating..." : "Create Room"}
           </Button>
         </DialogFooter>
       </DialogContent>

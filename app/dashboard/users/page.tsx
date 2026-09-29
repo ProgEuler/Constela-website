@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
+import useSWR from "swr";
 import { toast } from "sonner";
 import { AgTable } from "@/components/shared/AgTable";
 import { UserActionsCell } from "./_components/user-actions-cell";
-import { api } from "@/lib/api";
 import type { UserRow } from "./_components/data";
 
 type ApiUser = {
@@ -27,14 +27,8 @@ function tierToLabel(tier: string): string {
 }
 
 export default function Page() {
-  const [users, setUsers] = useState<UserRow[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await api.get<ApiUser[]>("/api/admin/users/");
-      const rows: UserRow[] = data.map((u) => ({
+  const { data, error, isLoading, mutate } = useSWR<ApiUser[]>("/api/admin/users/");
+  const users: UserRow[] = (data ?? []).map((u) => ({
         id: u.id,
         name: u.username,
         email: u.user?.email ?? "",
@@ -47,24 +41,19 @@ export default function Page() {
         location: u.location,
         subscription: tierToLabel(u.subscription_tier),
       }));
-      setUsers(rows);
-    } catch (err: any) {
-      toast.error(err?.message ?? "Failed to load users.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (error) toast.error(error.message ?? "Failed to load users.", { id: "users-load" });
+  }, [error]);
 
   return (
     <div className="space-y-4">
       <AgTable
         height={800}
         components={{ userActionsCell: UserActionsCell }}
-        context={{ reloadUsers: load }}
+        context={{ reloadUsers: mutate }}
         columnDefs={[
-          { field: "name", headerName: "Name", cellRenderer: "tableUserCell", minWidth: 160 },
+          { field: "name", headerName: "Name", cellClass: "font-medium", minWidth: 160 },
           { field: "email", headerName: "Email", minWidth: 220 },
           { field: "location", headerName: "Location", minWidth: 160 },
           { field: "subscription", headerName: "Subscription" },
@@ -80,7 +69,10 @@ export default function Page() {
             cellClass: "flex items-center justify-center",
           },
         ]}
-        rowData={isLoading ? [] : users}
+        rowData={users}
+        loading={isLoading}
+        pagination
+        pageSize={20}
       />
     </div>
   );

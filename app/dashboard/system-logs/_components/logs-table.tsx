@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import useSWR from "swr";
 import type { ColDef } from "ag-grid-community";
 import { AgTable } from "@/components/shared/AgTable";
-import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -20,22 +20,12 @@ type ApiLog = {
 };
 
 export function LogsTable() {
-  const [logs, setLogs] = useState<ApiLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data, error, isLoading } = useSWR<ApiLog[]>("/api/admin/logs/");
+  const logs = data ?? [];
 
   useEffect(() => {
-    async function loadLogs() {
-      try {
-        const data = await api.get<ApiLog[]>("/api/admin/logs/");
-        setLogs(data);
-      } catch (err: any) {
-        toast.error(err?.message ?? "Failed to load system logs.");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadLogs();
-  }, []);
+    if (error) toast.error(error.message ?? "Failed to load system logs.", { id: "logs-load" });
+  }, [error]);
 
   const columnDefs: ColDef<ApiLog>[] = [
     {
@@ -90,7 +80,8 @@ export function LogsTable() {
   return (
     <AgTable
       title="System Audit Logs"
-      rowData={isLoading ? [] : logs}
+      rowData={logs}
+      loading={isLoading}
       columnDefs={columnDefs}
       pagination
       pageSize={15}

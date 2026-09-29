@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import useSWR from "swr";
 import { CheckCircle2, Clock, Inbox, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AgTable } from "@/components/shared/AgTable";
 import StatCard, { type Stat } from "@/components/shared/stat-card";
-import { api } from "@/lib/api";
 
 type Ticket = {
   id: string;
@@ -40,27 +39,9 @@ const PRIORITY_STYLES: Record<string, string> = {
 };
 
 export default function OverviewDashboard() {
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [statsData, setStatsData] = useState<StatsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [ticketData, statData] = await Promise.all([
-        api.get<Ticket[]>("/api/admin/tickets/"),
-        api.get<StatsData>("/api/admin/dashboard/stats/"),
-      ]);
-      setTickets(ticketData);
-      setStatsData(statData);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  const { data: ticketData, isLoading: ticketsLoading } = useSWR<Ticket[]>("/api/admin/tickets/");
+  const { data: statsData, isLoading: statsLoading } = useSWR<StatsData>("/api/admin/dashboard/stats/");
+  const tickets = ticketData ?? [];
 
   const open = tickets.filter((t) => t.status !== "resolved" && t.status !== "in_progress");
   const replied = tickets.filter((t) => t.status === "in_progress");
@@ -89,7 +70,7 @@ export default function OverviewDashboard() {
 
   return (
     <div className="space-y-6">
-      <StatCard stats={stats} />
+      <StatCard stats={stats} loading={ticketsLoading || statsLoading} />
       <AgTable
         title="Support Tickets"
         gridOptions={{ rowHeight: 56 }}
@@ -139,7 +120,8 @@ export default function OverviewDashboard() {
             ),
           },
         ]}
-        rowData={isLoading ? [] : rowData}
+        rowData={rowData}
+        loading={ticketsLoading}
       />
     </div>
   );

@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils"
 import { getPreference, getValueFromCookie } from "@/server/server-actions"
 import type { RoleSlug } from "@/navigation/roles"
 import { PreferencesStoreProvider } from "@/stores/preferences/preferences-provider"
+import { DashboardDataProvider } from "@/components/providers/dashboard-data-provider"
 
 import { AccountSwitcher } from "./_components/sidebar/account-switcher"
 import { SearchDialog } from "./_components/sidebar/search-dialog"
@@ -49,12 +50,13 @@ export default async function Layout({
   ])
 
   return (
-    <PreferencesStoreProvider
-      themeMode={themeMode}
-      themePreset={themePreset}
-      contentLayout={contentLayout}
-      navbarStyle={navbarStyle}
-    >
+    <DashboardDataProvider>
+      <PreferencesStoreProvider
+        themeMode={themeMode}
+        themePreset={themePreset}
+        contentLayout={contentLayout}
+        navbarStyle={navbarStyle}
+      >
       <SidebarProvider
         defaultOpen={defaultOpen}
         style={
@@ -106,6 +108,7 @@ export default async function Layout({
           </div>
         </SidebarInset>
       </SidebarProvider>
-    </PreferencesStoreProvider>
+      </PreferencesStoreProvider>
+    </DashboardDataProvider>
   )
 }

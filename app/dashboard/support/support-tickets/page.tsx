@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
+import useSWR from "swr";
 import { ArrowRight, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgTable } from "@/components/shared/AgTable";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
 
 type Ticket = {
   id: string;
@@ -100,22 +100,12 @@ const sharedColumns = (router: ReturnType<typeof useRouter>, showOpen?: boolean)
 
 export default function SupportTicketsPage() {
   const router = useRouter();
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data, error, isLoading } = useSWR<Ticket[]>("/api/admin/tickets/");
+  const tickets = data ?? [];
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await api.get<Ticket[]>("/api/admin/tickets/");
-      setTickets(data);
-    } catch (err: any) {
-      toast.error(err?.message ?? "Failed to load tickets.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (error) toast.error(error.message ?? "Failed to load tickets.", { id: "tickets-load" });
+  }, [error]);
 
   const open = tickets.filter((t) => t.status !== "resolved");
   const resolved = tickets.filter((t) => t.status === "resolved");
@@ -137,15 +127,15 @@ export default function SupportTicketsPage() {
         </TabsList>
 
         <TabsContent value="all" className="m-0 focus-visible:ring-0 focus-visible:outline-none">
-          <AgTable gridOptions={{ rowHeight: 56 }} columnDefs={cols} rowData={isLoading ? [] : toRowData(tickets)} />
+          <AgTable gridOptions={{ rowHeight: 56 }} columnDefs={cols} rowData={toRowData(tickets)} loading={isLoading} />
         </TabsContent>
 
         <TabsContent value="open" className="m-0 focus-visible:ring-0 focus-visible:outline-none">
-          <AgTable gridOptions={{ rowHeight: 56 }} columnDefs={cols} rowData={isLoading ? [] : toRowData(open)} />
+          <AgTable gridOptions={{ rowHeight: 56 }} columnDefs={cols} rowData={toRowData(open)} loading={isLoading} />
         </TabsContent>
 
         <TabsContent value="resolved" className="m-0 focus-visible:ring-0 focus-visible:outline-none">
-          <AgTable gridOptions={{ rowHeight: 56 }} columnDefs={cols} rowData={isLoading ? [] : toRowData(resolved)} />
+          <AgTable gridOptions={{ rowHeight: 56 }} columnDefs={cols} rowData={toRowData(resolved)} loading={isLoading} />
         </TabsContent>
       </Tabs>
     </div>
