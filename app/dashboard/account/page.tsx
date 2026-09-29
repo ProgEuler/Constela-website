@@ -263,19 +263,6 @@ export default function AccountPage() {
             </div>
           </div>
 
-          {/* Role Row */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border rounded-lg bg-slate-50/50">
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-slate-700">System Role</Label>
-              <p className="text-sm text-slate-500">Your assigned permissions</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase">
-                {profile?.user?.role || "ADMIN"}
-              </span>
-            </div>
-          </div>
-          
         </CardContent>
       </Card>
 
