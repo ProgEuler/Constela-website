@@ -57,13 +57,19 @@ export default function AccountPage() {
   }, [loadProfile]);
 
   const handleSaveName = async () => {
-    if (!name.trim()) return;
+    const trimmed = name.trim();
+    if (!trimmed) {
+      toast.error("Display name cannot be empty.");
+      return;
+    }
     setIsUpdatingName(true);
     try {
-      await api.patch("/api/profile/me/", { first_name: name });
+      const updated = await api.patch<any>("/api/profile/me/", { first_name: trimmed });
       toast.success("Name updated successfully!");
       setIsEditingName(false);
-      setProfile((prev: any) => ({ ...prev, user: { ...prev.user, first_name: name } }));
+      const newName = updated?.user?.first_name || trimmed;
+      setName(newName);
+      setProfile((prev: any) => ({ ...prev, user: { ...prev?.user, first_name: newName } }));
     } catch (err: any) {
       toast.error(err?.message || "Failed to update name.");
     } finally {
@@ -72,16 +78,21 @@ export default function AccountPage() {
   };
 
   const handleSaveEmail = async () => {
-    if (!email.trim()) return;
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) {
+      toast.error("Email address cannot be empty.");
+      return;
+    }
     setIsUpdatingEmail(true);
     try {
-      await api.patch("/api/profile/me/", { email: email });
+      const updated = await api.patch<any>("/api/profile/me/", { email: trimmed });
       toast.success("Email updated successfully!");
       setIsEditingEmail(false);
-      setProfile((prev: any) => ({ ...prev, user: { ...prev.user, email: email } }));
+      const newEmail = updated?.user?.email || trimmed;
+      setEmail(newEmail);
+      setProfile((prev: any) => ({ ...prev, user: { ...prev?.user, email: newEmail } }));
     } catch (err: any) {
-      const errorMsg = err?.email ? err.email[0] : err?.message || "Failed to update email.";
-      toast.error(errorMsg);
+      toast.error(err?.message || "Failed to update email.");
     } finally {
       setIsUpdatingEmail(false);
     }
@@ -208,9 +219,25 @@ export default function AccountPage() {
                     className="w-[220px] h-9" 
                     value={email} 
                     onChange={(e) => setEmail(e.target.value)} 
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveEmail();
+                      if (e.key === "Escape") {
+                        setEmail(profile?.user?.email || "");
+                        setIsEditingEmail(false);
+                      }
+                    }}
+                    autoFocus
                     placeholder="Enter new email..."
                   />
-                  <Button size="icon" variant="ghost" onClick={() => setIsEditingEmail(false)} disabled={isUpdatingEmail}>
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    onClick={() => {
+                      setEmail(profile?.user?.email || "");
+                      setIsEditingEmail(false);
+                    }} 
+                    disabled={isUpdatingEmail}
+                  >
                     <X className="h-4 w-4 text-red-500" />
                   </Button>
                   <Button size="icon" onClick={handleSaveEmail} disabled={isUpdatingEmail || !email.trim()}>
@@ -220,7 +247,14 @@ export default function AccountPage() {
               ) : (
                 <>
                   <span className="text-sm font-medium px-2">{profile?.user?.email || "No email"}</span>
-                  <Button variant="outline" size="sm" onClick={() => setIsEditingEmail(true)}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setEmail(profile?.user?.email || "");
+                      setIsEditingEmail(true);
+                    }}
+                  >
                     <Edit2 className="h-3.5 w-3.5 mr-2" />
                     Update
                   </Button>
@@ -242,9 +276,25 @@ export default function AccountPage() {
                     className="w-[220px] h-9" 
                     value={name} 
                     onChange={(e) => setName(e.target.value)} 
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveName();
+                      if (e.key === "Escape") {
+                        setName(profile?.user?.first_name || profile?.user?.email?.split("@")[0] || "Admin");
+                        setIsEditingName(false);
+                      }
+                    }}
+                    autoFocus
                     placeholder="Enter display name..."
                   />
-                  <Button size="icon" variant="ghost" onClick={() => setIsEditingName(false)} disabled={isUpdatingName}>
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    onClick={() => {
+                      setName(profile?.user?.first_name || profile?.user?.email?.split("@")[0] || "Admin");
+                      setIsEditingName(false);
+                    }} 
+                    disabled={isUpdatingName}
+                  >
                     <X className="h-4 w-4 text-red-500" />
                   </Button>
                   <Button size="icon" onClick={handleSaveName} disabled={isUpdatingName || !name.trim()}>
@@ -254,7 +304,14 @@ export default function AccountPage() {
               ) : (
                 <>
                   <span className="text-sm font-medium px-2">{profile?.user?.first_name || name || "Admin"}</span>
-                  <Button variant="outline" size="sm" onClick={() => setIsEditingName(true)}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setName(profile?.user?.first_name || profile?.user?.email?.split("@")[0] || "Admin");
+                      setIsEditingName(true);
+                    }}
+                  >
                     <Edit2 className="h-3.5 w-3.5 mr-2" />
                     Update
                   </Button>

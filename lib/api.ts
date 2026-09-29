@@ -54,7 +54,11 @@ async function request<T>(
     let msg = `HTTP ${res.status}`;
     try {
       const body = await res.json();
-      msg = body?.detail ?? body?.error ?? body?.message ?? msg;
+      if (body?.email) {
+        msg = Array.isArray(body.email) ? body.email[0] : String(body.email);
+      } else {
+        msg = body?.detail ?? body?.error ?? body?.message ?? msg;
+      }
     } catch {}
     throw new ApiError(res.status, msg);
   }
