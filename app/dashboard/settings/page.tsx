@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
+import { Plus } from "lucide-react";
 
 import { AgTable } from "@/components/shared/AgTable";
 import { Button } from "@/components/ui/button";
@@ -97,12 +98,23 @@ export default function Page() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Admin Accounts Management</h1>
-        <p className="text-muted-foreground">Add or remove staff accounts and manage permissions.</p>
-      </div>
-      <div className="flex justify-end">
-        <AddAdminDialog currentUserRole={currentUserRole} onCreate={handleCreate} />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Admin Accounts Management</h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+            Add or remove staff accounts and manage permissions.
+          </p>
+        </div>
+        <AddAdminDialog
+          currentUserRole={currentUserRole}
+          onCreate={handleCreate}
+          trigger={
+            <Button className="w-full sm:w-auto">
+              <Plus />
+              Add New Admin
+            </Button>
+          }
+        />
       </div>
       <AgTable<typeof adminRows[0]>
         columnDefs={[

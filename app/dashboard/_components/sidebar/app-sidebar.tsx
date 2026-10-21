@@ -10,6 +10,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { APP_CONFIG } from "@/config/app-config"
 import { rootUser } from "@/data/users"
@@ -44,6 +45,7 @@ export function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar> & { selectedRole?: RoleSlug }) {
   const [user, setUser] = useState<{ name: string; email: string; avatar: string }>(rootUser)
+  const { isMobile, setOpenMobile } = useSidebar()
 
   useEffect(() => {
     async function fetchUser() {
@@ -67,7 +69,13 @@ export function AppSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link prefetch={false} href="/">
+              <Link
+                prefetch={false}
+                href="/"
+                onClick={() => {
+                  if (isMobile) setOpenMobile(false)
+                }}
+              >
                 {/* <Command /> */}
                 <Image
                   src={logo}

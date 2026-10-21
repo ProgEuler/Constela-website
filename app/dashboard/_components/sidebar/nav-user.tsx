@@ -27,7 +27,7 @@ export function NavUser({
     readonly avatar: string;
   };
 }) {
-  const { isMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
   const router = useRouter();
 
   const handleLogout = () => {
@@ -77,7 +77,13 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/account" className="flex items-center cursor-pointer w-full">
+                <Link
+                  href="/dashboard/account"
+                  className="flex items-center cursor-pointer w-full"
+                  onClick={() => {
+                    if (isMobile) setOpenMobile(false);
+                  }}
+                >
                   <CircleUser className="mr-2 h-4 w-4" />
                   Account
                 </Link>

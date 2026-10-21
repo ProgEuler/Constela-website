@@ -133,9 +133,9 @@ export default function ChatDashboard() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] gap-0 overflow-hidden rounded-2xl border bg-card">
+    <div className="flex min-h-[calc(100dvh-7rem)] flex-col overflow-hidden rounded-2xl border bg-card md:h-[calc(100dvh-6rem)] md:flex-row">
       {/* Left Panel */}
-      <div className="flex w-full max-w-sm shrink-0 flex-col border-r p-4">
+      <div className="flex w-full shrink-0 flex-col border-b p-4 md:max-w-sm md:border-r md:border-b-0">
         {roomsLoading ? (
           <div className="space-y-4" role="status" aria-label="Loading chat rooms">
             <Skeleton className="h-10 w-full" />
@@ -152,7 +152,7 @@ export default function ChatDashboard() {
       </div>
 
       {/* Right Panel */}
-      <div className="flex flex-1 flex-col overflow-y-auto p-5">
+      <div className="flex min-w-0 flex-1 flex-col overflow-y-auto p-4 md:p-5">
         {detailLoading ? (
           <div className="space-y-5" role="status" aria-label="Loading room details">
             <Skeleton className="h-8 w-56" />

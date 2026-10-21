@@ -140,11 +140,13 @@ export function SearchDialog() {
       <Button
         onClick={() => handleOpenChange(true)}
         variant="link"
-        className="px-0! font-normal text-muted-foreground hover:no-underline"
+        aria-label="Search"
+        aria-keyshortcuts="Meta+J Control+J"
+        className="min-w-0 shrink gap-1.5 px-2 font-normal text-muted-foreground hover:no-underline sm:px-0"
       >
-        <Search data-icon="inline-start" />
-        Search
-        <kbd className="inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 text-[10px] font-medium select-none">
+        <Search data-icon="inline-start" className="size-4 shrink-0" />
+        <span className="hidden sm:inline">Search</span>
+        <kbd className="hidden h-5 items-center gap-1 rounded border bg-muted px-1.5 text-[10px] font-medium select-none sm:inline-flex">
           <span className="text-xs">⌘</span>J
         </kbd>
       </Button>

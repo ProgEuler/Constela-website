@@ -84,7 +84,7 @@ export function LogsTable() {
       loading={isLoading}
       columnDefs={columnDefs}
       pagination
-      pageSize={15}
+      pageSize={20}
       height="calc(100vh - 220px)"
       minHeight={500}
       showRowNumberColumn={false}

@@ -174,8 +174,8 @@ export default function AccountPage() {
   return (
     <div className="max-w-3xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Account</h1>
-        <p className="text-muted-foreground">Manage your admin profile settings.</p>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Account</h1>
+        <p className="mt-1 text-sm text-muted-foreground sm:text-base">Manage your admin profile settings.</p>
       </div>
 
       <Card>

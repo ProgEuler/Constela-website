@@ -30,13 +30,13 @@ const iconColorClasses: Record<StatIconColor, string> = {
 
 export default function StatCard({ stats, className, loading = false }: StatCardProps) {
   return (
-    <div className={className ?? "grid gap-4 sm:grid-cols-2 lg:grid-cols-4"}>
+    <div className={className ?? "grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4"}>
       {stats.map((stat) => {
         const IconComponent = stat.icon
         return (
-          <Card key={stat.label} className="p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
+          <Card key={stat.label} className="p-3 sm:p-4">
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-xs text-muted-foreground sm:text-sm">
                 {stat.label}
               </span>
               <IconWrap
@@ -48,7 +48,7 @@ export default function StatCard({ stats, className, loading = false }: StatCard
             {loading ? (
               <Skeleton className="mt-3 h-7 w-20" />
             ) : (
-              <p className="mt-2 text-2xl font-bold">{stat.value}</p>
+              <p className="mt-2 text-xl font-bold sm:text-2xl">{stat.value}</p>
             )}
             {stat.change && (
               <p className="text-xs text-emerald-600 dark:text-emerald-400">

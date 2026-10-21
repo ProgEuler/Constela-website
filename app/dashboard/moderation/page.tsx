@@ -43,18 +43,18 @@ export default function Page() {
     <div className="space-y-6">
       <StatCard stats={stats} loading={isLoading} />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="p-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Card className="gap-1 p-4">
+          <div className="text-sm text-muted-foreground">Waiting in queue</div>
           <div className="text-2xl font-bold">{statsData?.global_stats?.waiting_in_queue ?? 0}</div>
-          <div>Waiting in queue</div>
         </Card>
-        <Card className="p-4">
+        <Card className="gap-1 p-4">
+          <div className="text-sm text-muted-foreground">Assigned to moderators</div>
           <div className="text-2xl font-bold">{statsData?.global_stats?.assigned_to_moderators ?? 0}</div>
-          <div>Assigned to moderators</div>
         </Card>
-        <Card className="p-4">
+        <Card className="gap-1 p-4">
+          <div className="text-sm text-muted-foreground">Closed today</div>
           <div className="text-2xl font-bold">{statsData?.global_stats?.closed_today ?? 0}</div>
-          <div>Closed today</div>
         </Card>
       </div>
 
