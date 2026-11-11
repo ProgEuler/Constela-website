@@ -10,6 +10,7 @@ import {
   Signal,
   Users,
   TicketCheck,
+  Camera,
 } from "lucide-react"
 
 export interface NavSubItem {
@@ -85,6 +86,11 @@ export const sidebarItems: NavGroup[] = [
         title: "Moderation",
         url: "/dashboard/moderation",
         icon: Shield,
+      },
+      {
+        title: "Photo Verification",
+        url: "/dashboard/photo-verification",
+        icon: Camera,
       },
       {
         title: "Chat",

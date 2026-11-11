@@ -83,6 +83,7 @@ export const roles: RoleConfig[] = [
       { title: "Customer Support", url: "/dashboard/support/support-tickets", icon: TicketCheck },
       { title: "Chat Rooms", url: "/dashboard/chat-room", icon: MessageSquare },
       { title: "Moderation", url: "/dashboard/moderation", icon: Shield },
+      { title: "Photo Verification", url: "/dashboard/photo-verification", icon: Camera },
       { title: "Settings", url: "/dashboard/settings", icon: Settings },
     ],
   },
