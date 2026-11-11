@@ -1,11 +1,12 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useEffect } from "react"
+import useSWR from "swr"
 import { toast } from "sonner"
 import { Crown, DollarSign } from "lucide-react"
 import { AgTable } from "@/components/shared/AgTable"
 import StatCard from "@/components/shared/stat-card"
-import { api } from "@/lib/api"
+import { TierLimitsPanel } from "./_components/tier-limits-panel"
 
 type ApiSubscription = {
   id: number
@@ -34,17 +35,9 @@ type SubscriptionsData = {
 }
 
 export default function Page() {
-  const [stats, setStats] = useState<SubscriptionsStats | null>(null)
-  const [subs, setSubs] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  const load = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const data = await api.get<SubscriptionsData>("/api/admin/subscriptions/")
-      setStats(data.stats)
-      setSubs(
-        data.subscriptions.map((s) => ({
+  const { data, error, isLoading } = useSWR<SubscriptionsData>("/api/admin/subscriptions/")
+  const stats = data?.stats
+  const subs = (data?.subscriptions ?? []).map((s) => ({
           id: s.id,
           name: s.user.username,
           email: s.user.email,
@@ -54,28 +47,27 @@ export default function Page() {
           amount: `$${s.amount}`,
           status: s.status,
         }))
-      )
-    } catch (err: any) {
-      toast.error(err?.message ?? "Failed to load subscriptions")
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (error) toast.error(error.message ?? "Failed to load subscriptions", { id: "subscriptions-load" })
+  }, [error])
 
   const statCards = [
     { label: "Active Subscriptions", value: String(stats?.active_subscriptions ?? 0), change: "", icon: Crown },
-    { label: "Premium Plan", value: String(stats?.premium_plan_count ?? 0), change: "", icon: Crown },
-    { label: "Basic Plan", value: String(stats?.basic_plan_count ?? 0), change: "", icon: Crown },
-    { label: "Monthly Revenue", value: `$${stats?.monthly_revenue?.toFixed(2) ?? "0.00"}`, change: "", icon: DollarSign },
+    { label: "Premium Plus", value: String(stats?.premium_plan_count ?? 0), change: "", icon: Crown },
+    { label: "Premium Light", value: String(stats?.basic_plan_count ?? 0), change: "", icon: Crown },
+    { label: "Revenue (Last 30 Days)", value: `$${stats?.monthly_revenue?.toFixed(2) ?? "0.00"}`, change: "", icon: DollarSign },
   ]
 
   return (
-    <div className="space-y-6">
-      <StatCard stats={statCards} />
+    <div className="space-y-8">
+      <StatCard stats={statCards} loading={isLoading} />
 
-      <AgTable
+      <TierLimitsPanel />
+
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold tracking-tight">Active & Historical Subscribers</h2>
+        <AgTable
         columnDefs={[
           { field: "id", headerName: "ID", maxWidth: 100 },
           {
@@ -103,8 +95,12 @@ export default function Page() {
             )
           },
         ]}
-        rowData={isLoading ? [] : subs}
+        rowData={subs}
+        loading={isLoading}
+        pagination
+        pageSize={20}
       />
+      </div>
     </div>
   )
 }

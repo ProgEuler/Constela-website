@@ -39,10 +39,12 @@ const NavItemExpanded = ({
   item,
   isActive,
   isSubmenuOpen,
+  onNavigate,
 }: {
   item: NavMainItem;
   isActive: (url: string, subItems?: NavMainItem["subItems"]) => boolean;
   isSubmenuOpen: (subItems?: NavMainItem["subItems"]) => boolean;
+  onNavigate?: () => void;
 }) => {
   return (
     <Collapsible key={item.title} asChild defaultOpen={isSubmenuOpen(item.subItems)} className="group/collapsible">
@@ -66,7 +68,7 @@ const NavItemExpanded = ({
               isActive={isActive(item.url)}
               tooltip={item.title}
             >
-              <Link prefetch={false} href={item.url} target={item.newTab ? "_blank" : undefined}>
+              <Link prefetch={false} href={item.url} target={item.newTab ? "_blank" : undefined} onClick={onNavigate}>
                 {item.icon && <item.icon />}
                 <span>{item.title}</span>
                 {item.comingSoon && <IsComingSoon />}
@@ -80,7 +82,7 @@ const NavItemExpanded = ({
               {item.subItems.map((subItem) => (
                 <SidebarMenuSubItem key={subItem.title}>
                   <SidebarMenuSubButton aria-disabled={subItem.comingSoon} isActive={isActive(subItem.url)} asChild>
-                    <Link prefetch={false} href={subItem.url} target={subItem.newTab ? "_blank" : undefined}>
+                    <Link prefetch={false} href={subItem.url} target={subItem.newTab ? "_blank" : undefined} onClick={onNavigate}>
                       {subItem.icon && <subItem.icon />}
                       <span>{subItem.title}</span>
                       {subItem.comingSoon && <IsComingSoon />}
@@ -143,13 +145,20 @@ const NavItemCollapsed = ({
 
 export function NavMain({ items }: NavMainProps) {
   const path = usePathname();
-  const { state, isMobile } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
+
+  const handleNavigate = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   const isItemActive = (url: string, subItems?: NavMainItem["subItems"]) => {
     if (subItems?.length) {
-      return subItems.some((sub) => path.startsWith(sub.url));
+      return subItems.some((sub) => path === sub.url || path.startsWith(`${sub.url}/`));
     }
-    return path === url;
+    if (path === url) return true;
+    // The dashboard root item should not stay highlighted on every nested page.
+    if (url.endsWith("/default") || url.endsWith("/dashboard")) return false;
+    return path.startsWith(`${url}/`);
   };
 
   const isSubmenuOpen = (subItems?: NavMainItem["subItems"]) => {
@@ -188,7 +197,7 @@ export function NavMain({ items }: NavMainProps) {
                 }
                 // Expanded view
                 return (
-                  <NavItemExpanded key={item.title} item={item} isActive={isItemActive} isSubmenuOpen={isSubmenuOpen} />
+                  <NavItemExpanded key={item.title} item={item} isActive={isItemActive} isSubmenuOpen={isSubmenuOpen} onNavigate={handleNavigate} />
                 );
               })}
             </SidebarMenu>

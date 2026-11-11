@@ -12,6 +12,7 @@ import {
 } from "@/lib/preferences/layout";
 import { THEME_MODE_VALUES, THEME_PRESET_VALUES } from "@/lib/preferences/theme";
 import { applyThemeMode } from "@/lib/preferences/theme-utils";
+import { applyNavbarStyle } from "@/lib/preferences/layout-utils";
 
 import { createPreferencesStore, type PreferencesState } from "./preferences-store";
 
@@ -62,6 +63,10 @@ export const PreferencesStoreProvider = ({
   );
 
   const domSnapshotRef = useRef<Partial<PreferencesState> | null>(null);
+
+  useEffect(() => {
+    applyNavbarStyle(navbarStyle);
+  }, [navbarStyle]);
 
   useEffect(() => {
     const domState = readDomState();

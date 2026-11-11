@@ -1,11 +1,11 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useEffect } from "react"
+import useSWR from "swr"
 import { toast } from "sonner"
 import { CircleAlert, DollarSign, RefreshCcw, CreditCard } from "lucide-react"
 import { AgTable } from "@/components/shared/AgTable"
 import StatCard, { type Stat } from "@/components/shared/stat-card"
-import { api } from "@/lib/api"
 
 type ApiPayment = {
   id: number
@@ -35,17 +35,9 @@ type PaymentsData = {
 }
 
 export default function Page() {
-  const [stats, setStats] = useState<PaymentsStats | null>(null)
-  const [payments, setPayments] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  const load = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const data = await api.get<PaymentsData>("/api/admin/payments/")
-      setStats(data.stats)
-      setPayments(
-        data.payments.map((p) => ({
+  const { data, error, isLoading } = useSWR<PaymentsData>("/api/admin/payments/")
+  const stats = data?.stats
+  const payments = (data?.payments ?? []).map((p) => ({
           id: p.id,
           user: p.user.username,
           email: p.user.email,
@@ -56,15 +48,10 @@ export default function Page() {
           status: p.status,
           paymentMethod: p.payment_method || "Credit Card",
         }))
-      )
-    } catch (err: any) {
-      toast.error(err?.message ?? "Failed to load payments")
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (error) toast.error(error.message ?? "Failed to load payments", { id: "payments-load" })
+  }, [error])
 
   const statCards: Stat[] = [
     { label: "Total Payments", value: String(payments.length), change: "", icon: CreditCard },
@@ -93,7 +80,7 @@ export default function Page() {
 
   return (
     <div className="space-y-6">
-      <StatCard stats={statCards} />
+      <StatCard stats={statCards} loading={isLoading} />
 
       <AgTable
         columnDefs={[
@@ -129,7 +116,10 @@ export default function Page() {
           },
           { field: "paymentMethod", headerName: "Payment Method" },
         ]}
-        rowData={isLoading ? [] : payments}
+        rowData={payments}
+        loading={isLoading}
+        pagination
+        pageSize={20}
       />
     </div>
   )

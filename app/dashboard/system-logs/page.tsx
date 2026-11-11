@@ -8,13 +8,14 @@ export const metadata: Metadata = {
 
 export default function SystemLogsPage() {
   return (
-    <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">System Logs</h2>
+    <div className="flex flex-col gap-4">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">System Logs</h2>
+        <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+          View and manage system and admin action logs.
+        </p>
       </div>
-      <div className="hidden h-full flex-1 flex-col space-y-8 md:flex">
-        <LogsTable />
-      </div>
+      <LogsTable />
     </div>
   );
 }

@@ -1,8 +1,11 @@
 import type { ReactNode } from "react"
 
 import { cookies } from "next/headers"
+import Image from "next/image"
+import Link from "next/link"
 import { AppSidebar } from "@/app/dashboard/_components/sidebar/app-sidebar"
-import { Separator } from "@/components/ui/separator"
+import logo from "@/assets/png/logo.png"
+import { APP_CONFIG } from "@/config/app-config"
 import {
   SidebarInset,
   SidebarProvider,
@@ -20,9 +23,9 @@ import { cn } from "@/lib/utils"
 import { getPreference, getValueFromCookie } from "@/server/server-actions"
 import type { RoleSlug } from "@/navigation/roles"
 import { PreferencesStoreProvider } from "@/stores/preferences/preferences-provider"
+import { DashboardDataProvider } from "@/components/providers/dashboard-data-provider"
 
 import { AccountSwitcher } from "./_components/sidebar/account-switcher"
-import { SearchDialog } from "./_components/sidebar/search-dialog"
 import { ThemeSwitcher } from "./_components/sidebar/theme-switcher"
 
 export default async function Layout({
@@ -49,12 +52,13 @@ export default async function Layout({
   ])
 
   return (
-    <PreferencesStoreProvider
-      themeMode={themeMode}
-      themePreset={themePreset}
-      contentLayout={contentLayout}
-      navbarStyle={navbarStyle}
-    >
+    <DashboardDataProvider>
+      <PreferencesStoreProvider
+        themeMode={themeMode}
+        themePreset={themePreset}
+        contentLayout={contentLayout}
+        navbarStyle={navbarStyle}
+      >
       <SidebarProvider
         defaultOpen={defaultOpen}
         style={
@@ -75,37 +79,48 @@ export default async function Layout({
             "[html[data-content-layout=centered]_&>*]:max-w-screen-2xl",
             "peer-data-[variant=inset]:border",
             "[--dashboard-header-height:--spacing(12)]",
-            "min-w-0 overflow-x-hidden"
+            "min-w-0 overflow-x-clip"
           )}
         >
           <header
             className={cn(
-              "flex h-12 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12",
+              "flex h-14 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14 md:h-12 md:group-has-data-[collapsible=icon]/sidebar-wrapper:h-12",
               // Handle sticky navbar style with conditional classes so blur, background, z-index, and rounded corners remain consistent across all SidebarVariant layouts.
               "[html[data-navbar-style=sticky]_&]:sticky [html[data-navbar-style=sticky]_&]:top-0 [html[data-navbar-style=sticky]_&]:z-50 [html[data-navbar-style=sticky]_&]:overflow-hidden [html[data-navbar-style=sticky]_&]:rounded-t-[inherit] [html[data-navbar-style=sticky]_&]:bg-background/50 [html[data-navbar-style=sticky]_&]:backdrop-blur-md"
             )}
           >
-            <div className="flex w-full items-center justify-between px-4 lg:px-6">
-              <div className="flex items-center gap-1 lg:gap-2">
-                <SidebarTrigger className="-ml-1" />
-                <Separator
-                  orientation="vertical"
-                  className="mx-2 data-[orientation=vertical]:h-4 data-[orientation=vertical]:self-center"
-                />
-                <SearchDialog />
+            <div className="relative flex w-full items-center justify-between gap-2 px-3 sm:px-4 lg:px-6">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <SidebarTrigger className="-ml-1 shrink-0" />
               </div>
-              <div className="flex items-center gap-2">
+              <Link
+                prefetch={false}
+                href={selectedRole ? `/dashboard/${selectedRole}` : "/"}
+                aria-label={APP_CONFIG.name}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-lg p-1 transition-opacity hover:opacity-80 md:hidden"
+              >
+                <Image
+                  src={logo}
+                  alt={APP_CONFIG.name}
+                  width={64}
+                  height={48}
+                  loading="eager"
+                  className="h-12 w-16 object-cover"
+                />
+              </Link>
+              <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
                 <ThemeSwitcher />
                 <AccountSwitcher users={users} />
               </div>
             </div>
           </header>
           {/* Pages can set data-content-padding="false" to render full-bleed app layouts. */}
-          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden bg-muted p-4 has-data-[content-padding=false]:p-0 md:p-6 md:has-data-[content-padding=false]:p-0">
+          <div className="min-h-0 min-w-0 flex-1 overflow-x-clip bg-muted p-3 has-data-[content-padding=false]:p-0 sm:p-4 md:p-6 md:has-data-[content-padding=false]:p-0">
             {children}
           </div>
         </SidebarInset>
       </SidebarProvider>
-    </PreferencesStoreProvider>
+      </PreferencesStoreProvider>
+    </DashboardDataProvider>
   )
 }

@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
+import useSWR from "swr";
 import { toast } from "sonner";
+import { Plus } from "lucide-react";
 
 import { AgTable } from "@/components/shared/AgTable";
 import { Button } from "@/components/ui/button";
@@ -29,27 +31,13 @@ const ROLE_SLUG_MAP: Record<string, string> = {
 };
 
 export default function Page() {
-  const [accounts, setAccounts] = useState<AdminAccount[]>([]);
-  const [currentUserRole, setCurrentUserRole] = useState<string>("admin");
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: accounts = [], error, isLoading, mutate } = useSWR<AdminAccount[]>("/api/admin/accounts/");
+  const { data: profileData } = useSWR<any>("/api/profile/me/");
+  const currentUserRole = profileData?.user?.role || "admin";
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [data, profileData] = await Promise.all([
-        api.get<AdminAccount[]>("/api/admin/accounts/"),
-        api.get<any>("/api/profile/me/")
-      ]);
-      setAccounts(data);
-      setCurrentUserRole(profileData.user?.role || "admin");
-    } catch (err: any) {
-      toast.error(err?.message ?? "Failed to load admin accounts.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (error) toast.error(error.message ?? "Failed to load admin accounts.", { id: "accounts-load" });
+  }, [error]);
 
   const handleCreate = async (data: {
     name: string;
@@ -65,7 +53,7 @@ export default function Page() {
         password: data.password,
       });
       toast.success("Admin account created successfully.");
-      load();
+      mutate();
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to create admin account.");
     }
@@ -79,7 +67,7 @@ export default function Page() {
         role: ROLE_SLUG_MAP[data.role] ?? data.role.toLowerCase(),
       });
       toast.success("Admin account updated.");
-      load();
+      mutate();
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to update admin account.");
     }
@@ -90,7 +78,7 @@ export default function Page() {
     try {
       await api.delete(`/api/admin/accounts/${adminId}/`);
       toast.success("Admin account removed.");
-      setAccounts((prev) => prev.filter((a) => a.id !== adminId));
+      mutate((current) => current?.filter((a) => a.id !== adminId), { revalidate: false });
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to remove admin account.");
     }
@@ -110,12 +98,23 @@ export default function Page() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Admin Accounts Management</h1>
-        <p className="text-muted-foreground">Add or remove staff accounts and manage permissions.</p>
-      </div>
-      <div className="flex justify-end">
-        <AddAdminDialog currentUserRole={currentUserRole} onCreate={handleCreate} />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Admin Accounts Management</h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+            Add or remove staff accounts and manage permissions.
+          </p>
+        </div>
+        <AddAdminDialog
+          currentUserRole={currentUserRole}
+          onCreate={handleCreate}
+          trigger={
+            <Button className="w-full sm:w-auto">
+              <Plus />
+              Add New Admin
+            </Button>
+          }
+        />
       </div>
       <AgTable<typeof adminRows[0]>
         columnDefs={[
@@ -169,7 +168,8 @@ export default function Page() {
             },
           },
         ]}
-        rowData={isLoading ? [] : adminRows}
+        rowData={adminRows}
+        loading={isLoading}
       />
     </div>
   );

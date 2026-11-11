@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import useSWR from "swr";
 import type { ColDef } from "ag-grid-community";
 import { ArrowRight, CircleCheck, UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -64,24 +65,14 @@ function PriorityBadge({ priority }: { priority: ReportPriority }) {
 }
 
 export default function ReportsPage() {
-  const [reports, setReports] = useState<(ReportRow & { _rawId?: string })[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data, error, isLoading, mutate } = useSWR<ApiReport[]>("/api/admin/reports/");
+  const reports = (data ?? []).map(toReportRow);
   const [actionReport, setActionReport] = useState<ReportRow | null>(null);
   const [actionSheetOpen, setActionSheetOpen] = useState(false);
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await api.get<ApiReport[]>("/api/admin/reports/");
-      setReports(data.map(toReportRow));
-    } catch (err: any) {
-      toast.error(err?.message ?? "Failed to load reports.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (error) toast.error(error.message ?? "Failed to load reports.", { id: "reports-load" });
+  }, [error]);
 
   const openCases = reports.filter((r) => r.status !== "Resolved");
   const resolvedReports = reports.filter((r) => r.status === "Resolved");
@@ -97,7 +88,7 @@ export default function ReportsPage() {
       await api.post(`/api/admin/reports/${rawId}/take_action/`, { action });
       toast.success(`Action "${action}" applied successfully.`);
       setActionSheetOpen(false);
-      load();
+      mutate();
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to apply action.");
     }
@@ -123,7 +114,7 @@ export default function ReportsPage() {
         </TabsList>
 
         <TabsContent value="all">
-          <AgTable title={`${reports.length} reports`} rowData={isLoading ? [] : reports} showRowNumberColumn={false} pagination pageSize={10} height="auto" minHeight={400}
+          <AgTable title={`${reports.length} reports`} rowData={reports} loading={isLoading} showRowNumberColumn={false} pagination pageSize={10} height="auto" minHeight={400}
             columnDefs={[reportIdCol, reportedUserCol, reasonCol, priorityCol, reportedByCol, timeCol]}
           />
         </TabsContent>
@@ -132,13 +123,13 @@ export default function ReportsPage() {
           {actionReport && (
             <TakeActionSheet report={actionReport} open={actionSheetOpen} onOpenChange={setActionSheetOpen} />
           )}
-          <AgTable title={`${openCases.length} open cases`} rowData={isLoading ? [] : openCases} showRowNumberColumn={false} pagination pageSize={10} height="auto" minHeight={400}
+          <AgTable title={`${openCases.length} open cases`} rowData={openCases} loading={isLoading} showRowNumberColumn={false} pagination pageSize={10} height="auto" minHeight={400}
             columnDefs={[reportIdCol, reportedUserCol, reasonCol, priorityCol, reportedByCol, timeCol]}
           />
         </TabsContent>
 
         <TabsContent value="resolved">
-          <AgTable title={`${resolvedReports.length} resolved reports`} rowData={isLoading ? [] : resolvedReports} showRowNumberColumn={false} pagination pageSize={10} height="auto" minHeight={400}
+          <AgTable title={`${resolvedReports.length} resolved reports`} rowData={resolvedReports} loading={isLoading} showRowNumberColumn={false} pagination pageSize={10} height="auto" minHeight={400}
             columnDefs={[reportIdCol, reportedUserCol, reasonCol, priorityCol, reportedByCol, timeCol]}
           />
         </TabsContent>

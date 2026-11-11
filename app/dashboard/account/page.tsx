@@ -7,19 +7,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { api } from "@/lib/api";
+import { api, API_BASE } from "@/lib/api";
 import { getInitials } from "@/lib/utils";
+import { Edit2, Loader2, Check, X } from "lucide-react";
 
 export default function AccountPage() {
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
+  // Display Name
   const [name, setName] = useState("");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
+
+  // Email
+  const [email, setEmail] = useState("");
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
+
+  // Passwords
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  
-  const [isUpdatingName, setIsUpdatingName] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   const loadProfile = useCallback(async () => {
@@ -27,7 +37,14 @@ export default function AccountPage() {
     try {
       const data = await api.get<any>("/api/profile/me/");
       setProfile(data);
-      setName(data.user?.first_name || data.user?.email?.split("@")[0] || "");
+      if (data?.user?.first_name) {
+        setName(data.user.first_name);
+      } else if (data?.user?.email) {
+        setName(data.user.email.split("@")[0]);
+      } else {
+        setName("");
+      }
+      setEmail(data?.user?.email || "");
     } catch (err: any) {
       toast.error("Failed to load profile.");
     } finally {
@@ -39,17 +56,45 @@ export default function AccountPage() {
     loadProfile();
   }, [loadProfile]);
 
-  const handleUpdateName = async () => {
-    if (!name.trim()) return;
+  const handleSaveName = async () => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      toast.error("Display name cannot be empty.");
+      return;
+    }
     setIsUpdatingName(true);
     try {
-      await api.patch("/api/profile/me/", { first_name: name });
+      const updated = await api.patch<any>("/api/profile/me/", { first_name: trimmed });
       toast.success("Name updated successfully!");
-      window.location.reload(); 
+      setIsEditingName(false);
+      const newName = updated?.user?.first_name || trimmed;
+      setName(newName);
+      setProfile((prev: any) => ({ ...prev, user: { ...prev?.user, first_name: newName } }));
     } catch (err: any) {
       toast.error(err?.message || "Failed to update name.");
     } finally {
       setIsUpdatingName(false);
+    }
+  };
+
+  const handleSaveEmail = async () => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) {
+      toast.error("Email address cannot be empty.");
+      return;
+    }
+    setIsUpdatingEmail(true);
+    try {
+      const updated = await api.patch<any>("/api/profile/me/", { email: trimmed });
+      toast.success("Email updated successfully!");
+      setIsEditingEmail(false);
+      const newEmail = updated?.user?.email || trimmed;
+      setEmail(newEmail);
+      setProfile((prev: any) => ({ ...prev, user: { ...prev?.user, email: newEmail } }));
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update email.");
+    } finally {
+      setIsUpdatingEmail(false);
     }
   };
 
@@ -84,8 +129,8 @@ export default function AccountPage() {
       const existingPhoto = profile?.photos?.[0];
       const method = existingPhoto ? "PATCH" : "POST";
       const url = existingPhoto 
-        ? `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001"}/api/photos/${existingPhoto.id}/`
-        : `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001"}/api/photos/`;
+        ? `${API_BASE}/api/photos/${existingPhoto.id}/`
+        : `${API_BASE}/api/photos/`;
       
       const res = await fetch(url, {
         method,
@@ -114,7 +159,14 @@ export default function AccountPage() {
   };
 
   if (isLoading) {
-    return <div className="p-8">Loading profile...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span>Loading profile...</span>
+        </div>
+      </div>
+    );
   }
 
   const avatarUrl = profile?.photos?.[0]?.image || undefined;
@@ -122,8 +174,8 @@ export default function AccountPage() {
   return (
     <div className="max-w-3xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Account</h1>
-        <p className="text-muted-foreground">Manage your admin profile settings.</p>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Account</h1>
+        <p className="mt-1 text-sm text-muted-foreground sm:text-base">Manage your admin profile settings.</p>
       </div>
 
       <Card>
@@ -132,7 +184,7 @@ export default function AccountPage() {
           <CardDescription>Update your avatar.</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center gap-6">
-          <Avatar className="h-24 w-24">
+          <Avatar className="h-24 w-24 border">
             <AvatarImage src={avatarUrl} />
             <AvatarFallback className="text-2xl">{getInitials(name || "Admin")}</AvatarFallback>
           </Avatar>
@@ -149,26 +201,125 @@ export default function AccountPage() {
       <Card>
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
-          <CardDescription>Update your name.</CardDescription>
+          <CardDescription>Update your personal details.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" value={profile?.user?.email || ""} disabled className="bg-muted" />
-            <p className="text-[10px] text-muted-foreground">Email cannot be changed.</p>
+          
+          {/* Email Row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border rounded-lg bg-slate-50/50">
+            <div className="space-y-1">
+              <Label className="text-sm font-semibold text-slate-700">Email Address</Label>
+              <p className="text-sm text-slate-500">Used for login and system notifications</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {isEditingEmail ? (
+                <>
+                  <Input 
+                    type="email"
+                    className="w-[220px] h-9" 
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)} 
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveEmail();
+                      if (e.key === "Escape") {
+                        setEmail(profile?.user?.email || "");
+                        setIsEditingEmail(false);
+                      }
+                    }}
+                    autoFocus
+                    placeholder="Enter new email..."
+                  />
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    onClick={() => {
+                      setEmail(profile?.user?.email || "");
+                      setIsEditingEmail(false);
+                    }} 
+                    disabled={isUpdatingEmail}
+                  >
+                    <X className="h-4 w-4 text-red-500" />
+                  </Button>
+                  <Button size="icon" onClick={handleSaveEmail} disabled={isUpdatingEmail || !email.trim()}>
+                    {isUpdatingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span className="text-sm font-medium px-2">{profile?.user?.email || "No email"}</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setEmail(profile?.user?.email || "");
+                      setIsEditingEmail(true);
+                    }}
+                  >
+                    <Edit2 className="h-3.5 w-3.5 mr-2" />
+                    Update
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
-            <Input id="role" value={(profile?.user?.role || "admin").toUpperCase()} disabled className="bg-muted font-medium" />
-            <p className="text-[10px] text-muted-foreground">Your assigned system role.</p>
+
+          {/* Display Name Row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border rounded-lg bg-slate-50/50">
+            <div className="space-y-1">
+              <Label className="text-sm font-semibold text-slate-700">Display Name</Label>
+              <p className="text-sm text-slate-500">How you appear to others in the dashboard</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {isEditingName ? (
+                <>
+                  <Input 
+                    className="w-[220px] h-9" 
+                    value={name} 
+                    onChange={(e) => setName(e.target.value)} 
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveName();
+                      if (e.key === "Escape") {
+                        setName(profile?.user?.first_name || profile?.user?.email?.split("@")[0] || "Admin");
+                        setIsEditingName(false);
+                      }
+                    }}
+                    autoFocus
+                    placeholder="Enter display name..."
+                  />
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    onClick={() => {
+                      setName(profile?.user?.first_name || profile?.user?.email?.split("@")[0] || "Admin");
+                      setIsEditingName(false);
+                    }} 
+                    disabled={isUpdatingName}
+                  >
+                    <X className="h-4 w-4 text-red-500" />
+                  </Button>
+                  <Button size="icon" onClick={handleSaveName} disabled={isUpdatingName || !name.trim()}>
+                    {isUpdatingName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span className="text-sm font-medium px-2">{profile?.user?.first_name || name || "Admin"}</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setName(profile?.user?.first_name || profile?.user?.email?.split("@")[0] || "Admin");
+                      setIsEditingName(true);
+                    }}
+                  >
+                    <Edit2 className="h-3.5 w-3.5 mr-2" />
+                    Update
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="name">Display Name</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <Button onClick={handleUpdateName} disabled={isUpdatingName || !name.trim()}>
-            {isUpdatingName ? "Saving..." : "Save changes"}
-          </Button>
+
         </CardContent>
       </Card>
 

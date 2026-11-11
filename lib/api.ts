@@ -2,8 +2,7 @@
  * Centralized API client for the admin dashboard.
  * Reads the JWT token from localStorage and attaches it to every request.
  */
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
+export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -55,7 +54,11 @@ async function request<T>(
     let msg = `HTTP ${res.status}`;
     try {
       const body = await res.json();
-      msg = body?.detail ?? body?.error ?? body?.message ?? msg;
+      if (body?.email) {
+        msg = Array.isArray(body.email) ? body.email[0] : String(body.email);
+      } else {
+        msg = body?.detail ?? body?.error ?? body?.message ?? msg;
+      }
     } catch {}
     throw new ApiError(res.status, msg);
   }

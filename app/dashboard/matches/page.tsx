@@ -1,11 +1,11 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useEffect } from "react"
+import useSWR from "swr"
 import { toast } from "sonner"
 import { Heart, TrendingUp } from "lucide-react"
 import { AgTable } from "@/components/shared/AgTable"
 import StatCard, { type Stat } from "@/components/shared/stat-card"
-import { api } from "@/lib/api"
 
 type ApiMatch = {
   id: number
@@ -29,17 +29,9 @@ type MatchesData = {
 }
 
 export default function Page() {
-  const [stats, setStats] = useState<MatchesStats | null>(null)
-  const [matches, setMatches] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  const load = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const data = await api.get<MatchesData>("/api/admin/matches/")
-      setStats(data.stats)
-      setMatches(
-        data.matches.map((m) => ({
+  const { data, error, isLoading } = useSWR<MatchesData>("/api/admin/matches/")
+  const stats = data?.stats
+  const matches = (data?.matches ?? []).map((m) => ({
           matchId: m.id,
           participants: `${m.user1.username} & ${m.user2.username}`,
           messages: m.messages_count,
@@ -47,15 +39,10 @@ export default function Page() {
           status: m.messages_count > 0 ? "Active" : "New",
           compatibility: `${m.compatibility_pct}%`,
         }))
-      )
-    } catch (err: any) {
-      toast.error(err?.message ?? "Failed to load matches")
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (error) toast.error(error.message ?? "Failed to load matches", { id: "matches-load" })
+  }, [error])
 
   const statCards: Stat[] = [
     { label: "Total Matches", value: String(stats?.total_matches ?? 0), change: "", icon: Heart },
@@ -66,7 +53,7 @@ export default function Page() {
 
   return (
     <div className="space-y-6">
-      <StatCard stats={statCards} />
+      <StatCard stats={statCards} loading={isLoading} />
 
       <AgTable
         columnDefs={[
@@ -74,7 +61,6 @@ export default function Page() {
           {
             headerName: "Participants",
             field: "participants",
-            cellRenderer: "tableUserCell",
             minWidth: 220,
           },
           { headerName: "Messages", field: "messages", maxWidth: 120 },
@@ -94,7 +80,10 @@ export default function Page() {
             )
           },
         ]}
-        rowData={isLoading ? [] : matches}
+        rowData={matches}
+        loading={isLoading}
+        pagination
+        pageSize={20}
       />
     </div>
   )

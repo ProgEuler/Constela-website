@@ -1,6 +1,3 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { getInitials } from "@/lib/utils"
-
 type TableUserCellProps = {
   name: string
   description?: string
@@ -15,7 +12,7 @@ type TableUserCellRendererParams = {
 
 export function TableUserCell({ name, description }: TableUserCellProps) {
   return (
-    <div className="min-w-0 text-left">
+    <div className="flex h-full min-w-0 flex-col justify-center text-left">
       <div className="truncate text-sm font-medium text-foreground">
         {name}
       </div>

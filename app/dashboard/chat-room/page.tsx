@@ -1,8 +1,10 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+import useSWR, { useSWRConfig } from "swr"
 import { toast } from "sonner"
 import { api } from "@/lib/api"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import {
   type ChatRoom,
@@ -34,8 +36,7 @@ function getColor(id: string) {
 }
 
 export default function ChatDashboard() {
-  const [rooms, setRooms] = useState<ChatRoom[]>([])
-  const [roomDetailsMap, setRoomDetailsMap] = useState<Record<string, ChatRoomDetail>>({})
+  const { mutate } = useSWRConfig()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
   
@@ -43,11 +44,8 @@ export default function ChatDashboard() {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
-  // Load Rooms List
-  const loadRooms = useCallback(async () => {
-    try {
-      const data = await api.get<any>("/api/admin/chat/rooms/")
-      const loadedRooms: ChatRoom[] = data.rooms.map((r: any) => ({
+  const { data: roomsData, error: roomsError, isLoading: roomsLoading, mutate: mutateRooms } = useSWR<any>("/api/admin/chat/rooms/")
+  const rooms: ChatRoom[] = (roomsData?.rooms ?? []).map((r: any) => ({
         id: String(r.id),
         name: r.name,
         description: r.description,
@@ -56,30 +54,26 @@ export default function ChatDashboard() {
         messageCount: r.messages_count,
         createdAt: r.created_at,
       }))
-      setRooms(loadedRooms)
-      if (loadedRooms.length > 0 && !selectedRoomId) {
-        setSelectedRoomId(loadedRooms[0].id)
-      }
-    } catch (err: any) {
-      toast.error(err?.message ?? "Failed to load chat rooms.")
-    }
-  }, [selectedRoomId])
 
-  useEffect(() => { loadRooms() }, [loadRooms])
+  useEffect(() => {
+    if (roomsError) toast.error(roomsError.message ?? "Failed to load chat rooms.", { id: "rooms-load" })
+  }, [roomsError])
 
-  // Load Room Details
-  const loadRoomDetails = useCallback(async (roomId: string) => {
-    try {
-      const data = await api.get<any>(`/api/admin/chat/rooms/${roomId}/`)
-      const detail: ChatRoomDetail = {
-        id: String(data.id),
-        name: data.name,
-        description: data.description,
+  useEffect(() => {
+    if (!selectedRoomId && rooms.length > 0) setSelectedRoomId(rooms[0].id)
+  }, [rooms, selectedRoomId])
+
+  const detailKey = selectedRoomId ? `/api/admin/chat/rooms/${selectedRoomId}/` : null
+  const { data: detailData, isLoading: detailLoading, mutate: mutateDetail } = useSWR<any>(detailKey)
+  const selectedRoom: ChatRoomDetail | null = detailData ? {
+        id: String(detailData.id),
+        name: detailData.name,
+        description: detailData.description,
         type: "public",
-        memberCount: data.members?.length ?? 0,
-        messageCount: data.messages_count ?? 0,
-        createdAt: data.created_at,
-        members: (data.members || []).map((m: any) => ({
+        memberCount: detailData.members?.length ?? 0,
+        messageCount: detailData.messages_count ?? 0,
+        createdAt: detailData.created_at,
+        members: (detailData.members || []).map((m: any) => ({
           id: String(m.id),
           name: m.name || m.username || "Unknown",
           email: m.email || "No email",
@@ -87,29 +81,16 @@ export default function ChatDashboard() {
           avatarBg: getColor(String(m.id)),
           avatar: m.photo,
           role: "member",
-          joinedAt: m.joined_at || data.created_at,
+          joinedAt: m.joined_at || detailData.created_at,
         })) as ChatMember[],
-      }
-      setRoomDetailsMap((prev) => ({ ...prev, [roomId]: detail }))
-    } catch (err: any) {
-      console.error(err)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (selectedRoomId) {
-      loadRoomDetails(selectedRoomId)
-    }
-  }, [selectedRoomId, loadRoomDetails])
-
-  const selectedRoom = selectedRoomId ? roomDetailsMap[selectedRoomId] ?? null : null
+      } : null
 
   const handleRename = async (id: string, name: string, description: string) => {
     try {
       await api.put(`/api/admin/chat/rooms/${id}/`, { name, description })
       toast.success("Room updated successfully")
-      loadRooms()
-      loadRoomDetails(id)
+      mutateRooms()
+      mutateDetail()
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to update room.")
     }
@@ -120,18 +101,13 @@ export default function ChatDashboard() {
       await api.delete(`/api/admin/chat/rooms/${id}/`)
       toast.success("Room deleted successfully")
       
-      setRooms((prev) => {
-        const next = prev.filter((r) => r.id !== id)
+      mutateRooms((current: any) => {
+        const next = (current?.rooms ?? []).filter((r: any) => String(r.id) !== id)
         if (selectedRoomId === id) {
-          setSelectedRoomId(next[0]?.id ?? null)
+          setSelectedRoomId(next[0] ? String(next[0].id) : null)
         }
-        return next
-      })
-      setRoomDetailsMap((prev) => {
-        const next = { ...prev }
-        delete next[id]
-        return next
-      })
+        return { ...current, rooms: next }
+      }, { revalidate: false })
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to delete room.")
     }
@@ -139,35 +115,55 @@ export default function ChatDashboard() {
 
   const handleCreate = async (name: string, description: string) => {
     try {
-      await api.post(`/api/admin/chat/rooms/`, { name, description })
+      const created = await api.post<{ id: string | number }>(`/api/admin/chat/rooms/`, { name, description })
+      const roomId = String(created.id)
+      const roomKey = `/api/admin/chat/rooms/${roomId}/`
+      const [, roomDetail] = await Promise.all([
+        mutateRooms(),
+        api.get(roomKey),
+      ])
+      await mutate(roomKey, roomDetail, { revalidate: false })
+      setSelectedRoomId(roomId)
       toast.success("Room created successfully")
-      loadRooms()
+      return true
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to create room.")
+      return false
     }
   }
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] gap-0 overflow-hidden rounded-2xl border bg-card">
+    <div className="flex min-h-[calc(100dvh-7rem)] flex-col overflow-hidden rounded-2xl border bg-card md:h-[calc(100dvh-6rem)] md:flex-row">
       {/* Left Panel */}
-      <div className="flex w-full max-w-sm shrink-0 flex-col border-r p-4">
-        <RoomListPanel
+      <div className="flex w-full shrink-0 flex-col border-b p-4 md:max-w-sm md:border-r md:border-b-0">
+        {roomsLoading ? (
+          <div className="space-y-4" role="status" aria-label="Loading chat rooms">
+            <Skeleton className="h-10 w-full" />
+            {Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="h-16 w-full" />)}
+          </div>
+        ) : <RoomListPanel
           rooms={rooms.filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()) || r.description.toLowerCase().includes(searchQuery.toLowerCase()))}
           selectedRoomId={selectedRoomId}
           onSelectRoom={setSelectedRoomId}
           onOpenCreate={() => setCreateDialogOpen(true)}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-        />
+        />}
       </div>
 
       {/* Right Panel */}
-      <div className="flex flex-1 flex-col overflow-y-auto p-5">
-        <RoomDetailPanel
+      <div className="flex min-w-0 flex-1 flex-col overflow-y-auto p-4 md:p-5">
+        {detailLoading ? (
+          <div className="space-y-5" role="status" aria-label="Loading room details">
+            <Skeleton className="h-8 w-56" />
+            <Skeleton className="h-4 w-80 max-w-full" />
+            <Skeleton className="h-40 w-full" />
+          </div>
+        ) : <RoomDetailPanel
           room={selectedRoom}
           onRename={() => setRenameDialogOpen(true)}
           onDelete={() => setDeleteDialogOpen(true)}
-        />
+        />}
       </div>
 
       {/* Create Room Dialog */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { Users, Heart, CreditCard, DollarSign, Camera, TicketCheck } from "lucide-react";
 
 import { Card, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,6 @@ import { PieChartComp } from "@/components/charts/pie-chart";
 import IconWrap from "@/components/common/icon-wrapper";
 import { AreaChartComp } from "@/components/charts/area-chart";
 import { BarChartComp } from "@/components/charts/bar-chart";
-import { api } from "@/lib/api";
 import { RealTimeActivity } from "./_components/real-time-activity";
 
 type DashboardStats = {
@@ -23,13 +22,7 @@ type DashboardStats = {
 };
 
 export default function SuperAdminDashboard() {
-  const [statsData, setStatsData] = useState<DashboardStats | null>(null);
-
-  useEffect(() => {
-    api.get<DashboardStats>("/api/admin/dashboard/stats/")
-      .then(setStatsData)
-      .catch(console.error);
-  }, []);
+  const { data: statsData, isLoading } = useSWR<DashboardStats>("/api/admin/dashboard/stats/");
 
   const stats: Stat[] = [
     {
@@ -75,7 +68,7 @@ export default function SuperAdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <StatCard stats={stats} />
+      <StatCard stats={stats} loading={isLoading} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[2fr_1fr]">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

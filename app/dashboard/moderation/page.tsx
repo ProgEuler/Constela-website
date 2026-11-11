@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect } from "react"
+import useSWR from "swr"
 import { AgTable } from "@/components/shared/AgTable"
 import StatCard, { type Stat } from "@/components/shared/stat-card"
 import { Card } from "@/components/ui/card"
@@ -10,38 +11,22 @@ import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function Page() {
-  const [statsData, setStatsData] = useState<any>(null);
-  const [reports, setReports] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [moderators, setModerators] = useState<any[]>([]);
-
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [statsRes, reportsRes, accountsRes] = await Promise.all([
-        api.get<any>("/api/admin/moderation/stats/"),
-        api.get<any[]>("/api/admin/reports/"),
-        api.get<any[]>("/api/admin/accounts/")
-      ]);
-      setStatsData(statsRes);
-      setReports(reportsRes);
-      setModerators(accountsRes.filter((a: any) => ["support", "moderator", "admin", "superadmin"].includes(a.role)));
-    } catch (err: any) {
-      toast.error(err?.message ?? "Failed to load moderation data.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const { data: statsData, error: statsError, isLoading: statsLoading } = useSWR<any>("/api/admin/moderation/stats/");
+  const { data: reports = [], error: reportsError, isLoading: reportsLoading, mutate: mutateReports } = useSWR<any[]>("/api/admin/reports/");
+  const { data: accounts = [], error: accountsError, isLoading: accountsLoading } = useSWR<any[]>("/api/admin/accounts/");
+  const moderators = accounts.filter((a: any) => ["support", "moderator", "admin", "superadmin"].includes(a.role));
+  const isLoading = statsLoading || reportsLoading || accountsLoading;
 
   useEffect(() => {
-    load();
-  }, [load]);
+    const error = statsError || reportsError || accountsError;
+    if (error) toast.error(error.message ?? "Failed to load moderation data.", { id: "moderation-load" });
+  }, [statsError, reportsError, accountsError]);
 
   const updateReport = async (reportId: string, payload: any) => {
     try {
       await api.patch(`/api/admin/reports/${reportId}/`, payload);
       toast.success("Report updated successfully");
-      load();
+      mutateReports();
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to update report");
     }
@@ -56,20 +41,20 @@ export default function Page() {
 
   return (
     <div className="space-y-6">
-      <StatCard stats={stats} />
+      <StatCard stats={stats} loading={isLoading} />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="p-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Card className="gap-1 p-4">
+          <div className="text-sm text-muted-foreground">Waiting in queue</div>
           <div className="text-2xl font-bold">{statsData?.global_stats?.waiting_in_queue ?? 0}</div>
-          <div>Waiting in queue</div>
         </Card>
-        <Card className="p-4">
+        <Card className="gap-1 p-4">
+          <div className="text-sm text-muted-foreground">Assigned to moderators</div>
           <div className="text-2xl font-bold">{statsData?.global_stats?.assigned_to_moderators ?? 0}</div>
-          <div>Assigned to moderators</div>
         </Card>
-        <Card className="p-4">
+        <Card className="gap-1 p-4">
+          <div className="text-sm text-muted-foreground">Closed today</div>
           <div className="text-2xl font-bold">{statsData?.global_stats?.closed_today ?? 0}</div>
-          <div>Closed today</div>
         </Card>
       </div>
 
@@ -82,6 +67,7 @@ export default function Page() {
           { field: "pendingReports", headerName: "Pending Reports" },
         ]}
         rowData={statsData?.moderator_activity || []}
+        loading={statsLoading}
       />
 
       <AgTable
@@ -145,6 +131,7 @@ export default function Page() {
           },
         ]}
         rowData={reports}
+        loading={reportsLoading}
       />
     </div>
   )
