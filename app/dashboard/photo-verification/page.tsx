@@ -2,14 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react"
 import useSWR from "swr"
-import { CircleCheck, Clock, OctagonX } from "lucide-react"
+import { CircleCheck, Clock, Inbox, OctagonX, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import StatCard from "@/components/shared/stat-card"
-import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/lib/api"
 
 import { UserReviewCard } from "./_components/user-review-card"
@@ -37,6 +36,8 @@ type VerificationData = {
   rejected: ApiUser[]
 }
 
+const VERIFICATIONS_KEY = "/api/admin/verifications/"
+
 const TABS: { value: VerificationStatus; label: string; empty: string }[] = [
   { value: "pending", label: "Pending", empty: "No photos waiting for review. 🎉" },
   { value: "verified", label: "Verified", empty: "No verified users yet." },
@@ -45,14 +46,6 @@ const TABS: { value: VerificationStatus; label: string; empty: string }[] = [
 
 function errorMessage(err: unknown, fallback: string) {
   return err instanceof Error && err.message ? err.message : fallback
-}
-
-function toLists(data: VerificationData): Record<VerificationStatus, VerificationUser[]> {
-  return {
-    pending: data.pending.map(mapApiUser),
-    verified: data.verified.map(mapApiUser),
-    rejected: data.rejected.map(mapApiUser),
-  }
 }
 
 function mapApiUser(u: ApiUser): VerificationUser {
@@ -80,43 +73,49 @@ function mapApiUser(u: ApiUser): VerificationUser {
 }
 
 export default function PhotoVerificationPage() {
-  const [selectedUser, setSelectedUser] = useState<VerificationUser | undefined>()
-  const [activeTab, setActiveTab] = useState<string>("pending")
-  const { data, error, isLoading, mutate } = useSWR<VerificationData>("/api/admin/verifications/")
-  const pendingUsers = useMemo(() => (data?.pending ?? []).map(mapApiUser), [data])
-  const verifiedUsers = useMemo(() => (data?.verified ?? []).map(mapApiUser), [data])
-  const rejectedUsers = useMemo(() => (data?.rejected ?? []).map(mapApiUser), [data])
+  const { data, error, isLoading, isValidating, mutate } = useSWR<VerificationData>(VERIFICATIONS_KEY)
+  const [activeTab, setActiveTab] = useState<VerificationStatus>("pending")
+  const [selectedId, setSelectedId] = useState<string | undefined>()
+
+  const lists = useMemo<Record<VerificationStatus, VerificationUser[]>>(
+    () => ({
+      pending: (data?.pending ?? []).map(mapApiUser),
+      verified: (data?.verified ?? []).map(mapApiUser),
+      rejected: (data?.rejected ?? []).map(mapApiUser),
+    }),
+    [data],
+  )
 
   useEffect(() => {
-    if (error) toast.error(error.message ?? "Failed to load verifications.", { id: "verifications-load" })
+    if (error) toast.error(errorMessage(error, "Failed to load verifications."), { id: "verifications-load" })
   }, [error])
 
-  useEffect(() => {
-    const currentList = activeTab === "pending" ? pendingUsers : activeTab === "verified" ? verifiedUsers : rejectedUsers
-    if (!selectedUser || !currentList.some((user) => user.id === selectedUser.id)) {
-      setSelectedUser(currentList[0])
-    }
-  }, [activeTab, data, selectedUser, pendingUsers, verifiedUsers, rejectedUsers])
+  const current = lists[activeTab]
+  // The selected person, or the first in the list (e.g. after they were decided and left it).
+  const selectedUser = useMemo(
+    () => current.find((u) => u.id === selectedId) ?? current[0],
+    [current, selectedId],
+  )
 
-  const handleVerify = async (user: VerificationUser) => {
+  // After a decision, continue with the next person in the same list.
+  const decideAndAdvance = async (user: VerificationUser, body: Record<string, string>, done: string) => {
+    const index = current.findIndex((u) => u.id === user.id)
+    const next = current[index + 1] ?? current[index - 1]
     try {
-      await api.post(`/api/admin/verifications/${user.id}/action/`, { action: "approve" })
-      toast.success(`${user.name} has been verified.`)
-      mutate()
-    } catch (err: any) {
-      toast.error(err?.message ?? "Failed to verify user.")
+      await api.post(`/api/admin/verifications/${user.id}/action/`, body)
+      toast.success(done)
+      setSelectedId(next?.id)
+      await mutate()
+    } catch (err) {
+      toast.error(errorMessage(err, "Something went wrong. Please try again."))
     }
   }
 
-  const handleReject = async (user: VerificationUser) => {
-    try {
-      await api.post(`/api/admin/verifications/${user.id}/action/`, { action: "reject" })
-      toast.success(`${user.name} has been rejected.`)
-      mutate()
-    } catch (err: any) {
-      toast.error(err?.message ?? "Failed to reject user.")
-    }
-  }
+  const handleVerify = (user: VerificationUser) =>
+    decideAndAdvance(user, { action: "approve" }, `${user.name} is now verified.`)
+
+  const handleReject = (user: VerificationUser, reason: string) =>
+    decideAndAdvance(user, { action: "reject", reason }, `${user.name}'s photo was rejected.`)
 
   return (
     <div className="space-y-6">
@@ -136,145 +135,71 @@ export default function PhotoVerificationPage() {
           </div>
           <Skeleton className="h-[400px] w-full" />
         </div>
-      ) : <Tabs
-        defaultValue="pending"
-        onValueChange={(value) => {
-          setActiveTab(value as VerificationStatus)
-          setSelectedId(undefined)
-        }}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <TabsList>
-            {TABS.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value} className="gap-2">
-                {tab.label}
-                <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs">{lists[tab.value].length}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => load()} disabled={isLoading}>
-            <RefreshCw className={isLoading ? "size-4 animate-spin" : "size-4"} />
-            Refresh
-          </Button>
-        </div>
-
-        {TABS.map((tab) => (
-          <TabsContent key={tab.value} value={tab.value}>
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_1fr]">
-              <div className="space-y-2">
-                <span className="px-1 text-xs font-medium text-muted-foreground">
-                  {tab.value === "pending"
-                    ? `${lists.pending.length} to review · oldest first`
-                    : `${lists[tab.value].length} ${tab.label.toLowerCase()}`}
-                </span>
-                <div className="flex max-h-[640px] flex-col gap-2 overflow-y-auto pr-1">
-                  {isLoading
-                    ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[66px] w-full rounded-xl" />)
-                    : lists[tab.value].map((user) => (
-                        <UserReviewCard
-                          key={user.id}
-                          user={user}
-                          selected={selectedUser?.id === user.id}
-                          onSelect={(u) => setSelectedId(u.id)}
-                        />
-                      ))}
-                </div>
-              </div>
-
-            <div className="min-w-0">
-              {selectedUser?.status === "pending" ? (
-                <VerificationPanel
-                  user={selectedUser}
-                  onVerify={handleVerify}
-                  onReject={handleReject}
-                />
-              ) : (
-                <div className="flex h-[400px] items-center justify-center rounded-xl border border-dashed border-border">
-                  <p className="text-sm text-muted-foreground">
-                    Select a pending user to review
-                  </p>
-                </div>
-              )}
-            </div>
+      ) : (
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => {
+            setActiveTab(value as VerificationStatus)
+            setSelectedId(undefined)
+          }}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <TabsList>
+              {TABS.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value} className="gap-2">
+                  {tab.label}
+                  <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs">{lists[tab.value].length}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => mutate()} disabled={isValidating}>
+              <RefreshCw className={isValidating ? "size-4 animate-spin" : "size-4"} />
+              Refresh
+            </Button>
           </div>
-        </TabsContent>
 
-        <TabsContent value="verified">
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_1fr]">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-medium text-muted-foreground">
-                  {verifiedUsers.length} verified users
-                </span>
-              </div>
-              <div className="flex flex-col gap-2 max-h-[600px] overflow-y-auto">
-                {verifiedUsers.map((user) => (
-                  <UserReviewCard
-                    key={user.id}
-                    user={user}
-                    selected={selectedUser?.id === user.id}
-                    onSelect={setSelectedUser}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="min-w-0">
-              {selectedUser?.status === "verified" ? (
-                <VerificationPanel
-                  user={selectedUser}
-                  onVerify={handleVerify}
-                  onReject={handleReject}
-                />
-              ) : (
-                <div className="flex h-[400px] items-center justify-center rounded-xl border border-dashed border-border">
-                  <p className="text-sm text-muted-foreground">
-                    Select a verified user to view
-                  </p>
+          {TABS.map((tab) => (
+            <TabsContent key={tab.value} value={tab.value}>
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_1fr]">
+                <div className="space-y-2">
+                  <span className="px-1 text-xs font-medium text-muted-foreground">
+                    {tab.value === "pending"
+                      ? `${lists.pending.length} to review · oldest first`
+                      : `${lists[tab.value].length} ${tab.label.toLowerCase()}`}
+                  </span>
+                  <div className="flex max-h-[640px] flex-col gap-2 overflow-y-auto pr-1">
+                    {lists[tab.value].map((user) => (
+                      <UserReviewCard
+                        key={user.id}
+                        user={user}
+                        selected={selectedUser?.id === user.id}
+                        onSelect={(u) => setSelectedId(u.id)}
+                      />
+                    ))}
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-        </TabsContent>
 
-        <TabsContent value="rejected">
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_1fr]">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-medium text-muted-foreground">
-                  {rejectedUsers.length} rejected users
-                </span>
-              </div>
-              <div className="flex flex-col gap-2 max-h-[600px] overflow-y-auto">
-                {rejectedUsers.map((user) => (
-                  <UserReviewCard
-                    key={user.id}
-                    user={user}
-                    selected={selectedUser?.id === user.id}
-                    onSelect={setSelectedUser}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="min-w-0">
-              {selectedUser?.status === "rejected" ? (
-                <VerificationPanel
-                  user={selectedUser}
-                  onVerify={handleVerify}
-                  onReject={handleReject}
-                />
-              ) : (
-                <div className="flex h-[400px] items-center justify-center rounded-xl border border-dashed border-border">
-                  <p className="text-sm text-muted-foreground">
-                    Select a rejected user to view
-                  </p>
+                <div className="min-w-0">
+                  {selectedUser ? (
+                    // key: a fresh panel per person, so zoom/reject state never carries over.
+                    <VerificationPanel
+                      key={selectedUser.id}
+                      user={selectedUser}
+                      onVerify={handleVerify}
+                      onReject={handleReject}
+                    />
+                  ) : (
+                    <div className="flex h-[400px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border">
+                      <Inbox className="size-8 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">{tab.empty}</p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>}
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
+      )}
     </div>
   )
 }

@@ -1,3 +1,5 @@
+import { API_BASE } from "@/lib/api"
+
 export type VerificationStatus = "pending" | "verified" | "rejected"
 
 export type VerificationUser = {
@@ -57,6 +59,5 @@ export const QUICK_REJECT_REASONS = [
 export const getImageUrl = (path: string | undefined | null) => {
   if (!path) return ""
   if (path.startsWith("http")) return path
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001"
-  return `${baseUrl}${path.startsWith("/") ? "" : "/"}${path}`
+  return `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`
 }

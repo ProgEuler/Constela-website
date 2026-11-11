@@ -18,24 +18,61 @@ import { Kbd } from "@/components/ui/kbd"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
-import { API_BASE } from "@/lib/api"
 
-import { statusMeta, type VerificationUser } from "./verification-data"
-import { Avatar } from "@/components/ui/avatar"
-import { useState } from "react"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import {
+  getImageUrl,
+  QUICK_REJECT_REASONS,
+  statusMeta,
+  type VerificationUser,
+} from "./verification-data"
 
 type VerificationPanelProps = {
   user: VerificationUser
-  onVerify: (user: VerificationUser) => void
-  onReject: (user: VerificationUser) => void
+  onVerify: (user: VerificationUser) => void | Promise<void>
+  onReject: (user: VerificationUser, reason: string) => void | Promise<void>
 }
 
-const getImageUrl = (path: string | undefined | null) => {
-  if (!path) return "";
-  if (path.startsWith("http")) return path;
-  return `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
-};
+function PhotoBox({
+  url,
+  label,
+  accent,
+  onOpen,
+}: {
+  url: string
+  label: string
+  accent?: boolean
+  onOpen: (url: string) => void
+}) {
+  return (
+    <div className="space-y-2">
+      <span className={cn("text-xs font-semibold", accent ? "text-primary" : "text-foreground")}>
+        {label}
+      </span>
+      <button
+        type="button"
+        disabled={!url}
+        onClick={() => url && onOpen(url)}
+        className={cn(
+          "group relative block aspect-[3/4] w-full overflow-hidden rounded-xl bg-muted",
+          accent && "ring-2 ring-primary/60",
+        )}
+      >
+        {url ? (
+          <>
+            <img src={url} alt={label} className="h-full w-full object-cover" />
+            <span className="absolute right-2 bottom-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[11px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+              <ZoomIn className="size-3" /> Enlarge
+            </span>
+          </>
+        ) : (
+          <span className="flex h-full w-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+            <ImageOff className="size-6" /> No photo
+          </span>
+        )}
+      </button>
+    </div>
+  )
+}
 
 export function VerificationPanel({ user, onVerify, onReject }: VerificationPanelProps) {
   const meta = statusMeta[user.status]
